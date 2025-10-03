@@ -1,0 +1,316 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light theme */
+  --background: hsl(30, 40%, 98%);          /* warm cream */
+  --foreground: hsl(214, 12%, 12%);         /* deep slate for headings */
+  --muted-foreground: hsl(215, 10%, 48%);   /* softer text color */
+  --card: hsl(30, 40%, 99%);                /* near-white card */
+  --card-foreground: var(--foreground);
+  --popover: hsl(30, 40%, 99%);
+  --popover-foreground: var(--foreground);
+  --primary: hsl(8, 68%, 57%);              /* coral / flip button */
+  --primary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(180, 15%, 45%);             /* muted teal (progress) */
+  --secondary: hsl(30, 40%, 96%);           /* soft panel bg */
+  --muted: hsl(30, 40%, 92%);
+  --muted-foreground: hsl(215, 10%, 48%);
+  --destructive: hsl(358, 65%, 55%);
+  --destructive-foreground: #fff;
+  --border: hsl(30, 30%, 89%);
+  --input: hsl(30, 30%, 94%);
+  --ring: hsl(8, 68%, 57%); --radius: 0.5rem; --font-sans: Inter, sans-serif; --font-serif: Georgia, serif; --font-mono: Menlo, monospace;
+}
+
+.dark {
+  --background: hsl(214, 32%, 10%);
+  --foreground: hsl(210, 40%, 98%);
+  --card: hsl(214, 32%, 12%);
+  --card-foreground: var(--foreground);
+  --popover: hsl(214, 32%, 12%);
+  --popover-foreground: var(--foreground);
+  --primary: hsl(8, 68%, 57%);
+  --primary-foreground: hsl(0,0%,100%);
+  --secondary: hsl(214, 27%, 14%);
+  --muted: hsl(214, 27%, 14%);
+  --muted-foreground: hsl(210, 40%, 85%);
+  --accent: hsl(180, 15%, 45%);
+  --border: hsl(214, 27%, 17%);
+  --input: hsl(214, 27%, 17%);
+  --ring: hsl(8, 68%, 57%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+@font-face {
+  font-family: 'NSimSun';
+  src: url('/fonts/NSimSun.ttf') format('truetype');
+  font-display: swap;
+}
+
+@layer utilities {
+  .card-3d {
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease;
+  }
+  
+  .card-3d:hover {
+    transform: translateY(-8px) rotateX(5deg);
+  }
+  
+  .pack-unopened {
+    background: linear-gradient(135deg, hsl(30, 30%, 94%) 0%, hsl(30, 30%, 89%) 100%);
+  }
+  
+  .card-common {
+    background: linear-gradient(135deg, hsl(210, 20%, 95%) 0%, hsl(214, 13%, 89%) 100%);
+  }
+  
+  .card-rare {
+    background: linear-gradient(135deg, hsl(217, 91%, 60%) 0%, hsl(224, 76%, 48%) 100%);
+  }
+  
+  .card-epic {
+    background: linear-gradient(135deg, hsl(30, 30%, 94%) 0%, hsl(30, 30%, 94%) 100%);
+  }
+  
+  .card-legendary {
+    background: linear-gradient(135deg, hsl(43, 96%, 56%) 0%, hsl(37, 91%, 55%) 100%);
+  }
+
+  .animate-card-flip {
+    animation: cardFlip 0.8s ease-in-out;
+  }
+  
+  .animate-card-reveal {
+    animation: cardReveal 1.2s ease-out;
+  }
+  
+/*  .holographic::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 0, 255, 0.15) 25%,
+        rgba(0, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.2) 100%
+      );
+    mix-blend-mode: screen;
+    background-size: 200% 200%;
+    animation: holo-shimmer 120s linear infinite;
+    pointer-events: none;
+    z-index: 1; }*//* keep below content but above bg */
+  .holographic::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 0, 255, 0.15) 25%,
+        rgba(0, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.2) 100%
+      );
+    mix-blend-mode: screen;
+    background-size: cover;   /* No shifting, fixed background */
+    background-position: center; /* Locks gradient in place */
+    pointer-events: none;
+    z-index: 1; /* keep below content but above bg */
+  }
+  
+  @keyframes holo-shimmer {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Metallic shine on hover */
+  .holographic::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      75deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent
+    );
+    transform: skewX(-20deg);
+    z-index: 2; /* above shimmer */
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .holographic:hover::before {
+    animation: holo-shine 1.5s forwards;
+  }
+
+  /* Default metallic */
+  .holographic.shine-default::before {
+    background: linear-gradient(
+      75deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent
+    );
+  }
+
+  /* Bronze */
+  .holographic.shine-1::before {
+    background: linear-gradient(
+      75deg,
+      transparent,
+      #7b4a19,
+      transparent
+    );
+  }
+
+  /* Silver */
+  .holographic.shine-2::before {
+    background: linear-gradient(
+      75deg,
+      transparent,
+      #c0c0c0,
+      transparent
+    );
+  }
+
+  /* Gold */
+  .holographic.shine-3::before {
+    background: linear-gradient(
+      75deg,
+      transparent,
+      #ffd700,
+      transparent
+    );
+  }
+
+  /* Emerald */
+  .holographic.shine-4::before {
+    background: linear-gradient(
+      75deg,
+      transparent,
+      #50c878,
+      transparent
+    );
+  }
+
+  /* Diamond (icy blue-white) */
+  .holographic.shine-5::before {
+    background: linear-gradient(
+      75deg,
+      transparent,
+      #b9f2ff,
+      transparent
+    );
+  }
+
+  /* Rainbow (animated!) */
+  .holographic.shine-6::before {
+    background: linear-gradient(
+      75deg,
+      transparent,
+      red,
+      orange,
+      yellow,
+      green,
+      blue,
+      indigo,
+      violet,
+      transparent
+    );
+    background-size: 400% 100%;
+    animation: rainbow-shine 2s linear infinite;
+  }
+
+  @keyframes rainbow-shine {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes holo-shine {
+    0% {
+      left: -75%;
+      opacity: 0;
+    }
+    50% {
+      opacity: 0.5; /* peak opacity mid-way */
+    }
+    100% {
+      left: 125%;
+      opacity: 0;
+    }
+  }
+
+
+
+
+  .animate-pack-shake {
+    animation: packShake 0.5s ease-in-out;
+  }
+  
+  .animate-glow-pulse {
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes cardFlip {
+  0% { transform: rotateY(0deg) scale(1); }
+  50% { transform: rotateY(90deg) scale(1.05); }
+  100% { transform: rotateY(0deg) scale(1); }
+}
+
+@keyframes cardReveal {
+  0% { 
+    transform: scale(0.8) rotateY(180deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1) rotateY(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes packShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px) rotate(-1deg); }
+  75% { transform: translateX(5px) rotate(1deg); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px hsl(30, 30%, 94%, 0.4); }
+  50% { box-shadow: 0 0 40px hsl(30, 30%, 94%, 0.4), 0 0 60px hsl(30, 30%, 94%, 0.4); }
+}
+
+.particle {
+  pointer-events: none;
+}
