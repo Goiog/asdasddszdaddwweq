@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+const port = Number(process.env.PORT) || 3000;
+app.listen(port, () => console.log(`Listening on ${port}`));
 
 const app = express();
 app.use(express.json());
