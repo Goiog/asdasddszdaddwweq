@@ -4,8 +4,7 @@ import fs from "fs";
 import path from "path";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
-import { fileURLToPath } from "url";
-import viteConfig from "../vite.config";
+import { fileURLToPath, pathToFileURL } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,21 +15,28 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-/**
- * setupVite: only imports 'vite' at runtime when called.
- * This prevents requiring the 'vite' package in production where it's not installed.
- */
 export async function setupVite(app: Express, server: Server) {
-  // Dynamically import vite so production builds that don't have vite installed won't fail
+  // dynamic import of vite (dev-only)
   const viteModule = await import("vite");
-  const createViteServer = viteModule.createServer ?? viteModule.createServer;
-  const createLogger = viteModule.createLogger ?? viteModule.createLogger;
-
+  const { createServer: createViteServer, createLogger } = viteModule;
   const viteLogger = createLogger();
+
+  // Try JS config first, then TS config. Convert paths to file:// URLs for import()
+  const tryImportConfig = async (p: string) => {
+    const full = path.resolve(__dirname, "..", p);
+    const fileUrl = pathToFileURL(full).href;
+    try {
+      const mod = await import(fileUrl);
+      return mod.default ?? mod;
+    } catch {
+      return null;
+    }
+  };
+
+  let viteConfig = (await tryImportConfig("vite.config.js")) ?? (await tryImportConfig("vite.config.ts")) ?? {};
 
   const serverOptions = {
     middlewareMode: true,
@@ -45,7 +51,6 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg: any, options?: any) => {
         viteLogger.error(msg, options);
-        // Exit in dev if Vite hits a fatal error
         process.exit(1);
       },
     },
@@ -57,11 +62,8 @@ export async function setupVite(app: Express, server: Server) {
 
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
-
     try {
       const clientTemplate = path.resolve(__dirname, "..", "client", "index.html");
-
-      // always reload the index.html file from disk in dev
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -70,7 +72,6 @@ export async function setupVite(app: Express, server: Server) {
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
-      // enhance stack traces during dev
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }
@@ -87,8 +88,6 @@ export function serveStatic(app: Express) {
   }
 
   app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
