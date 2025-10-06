@@ -1,13 +1,8 @@
-<<<<<<< HEAD
 // server/index.ts
 import http from "http";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-=======
-import express, { type Request, type Response, type NextFunction } from "express";
-import { registerRoutes } from "./routes";
->>>>>>> 71c8e1181e7d60110b544f185db42c3e8d795026
 
 const app = express();
 
@@ -32,7 +27,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
   // capture body for logs
@@ -52,12 +47,7 @@ app.use((req, res, next) => {
       if (logLine.length > 160) {
         logLine = logLine.slice(0, 159) + "…";
       }
-<<<<<<< HEAD
       log(logLine);
-=======
-
-      console.log(logLine);
->>>>>>> 71c8e1181e7d60110b544f185db42c3e8d795026
     }
   });
 
@@ -85,24 +75,13 @@ app.use((req, res, next) => {
     // do not throw — allow graceful shutdown or process-level handlers to decide
   });
 
-<<<<<<< HEAD
   // dev vs production: keep your Vite setup behavior
   if (app.get("env") === "development") {
     await setupVite(app, maybeServer as unknown as http.Server);
-=======
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === 'development') {
-    const { setupVite } = await import('./vite');
-    await setupVite(app, server);
->>>>>>> 71c8e1181e7d60110b544f185db42c3e8d795026
   } else {
-    const { serveStatic } = await import('./vite');
     serveStatic(app);
   }
 
-<<<<<<< HEAD
   // add a lightweight healthcheck endpoint (useful for Render / load balancers)
   app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
 
@@ -167,19 +146,5 @@ app.use((req, res, next) => {
   process.on("unhandledRejection", (reason) => {
     log("unhandledRejection: " + (reason as any)?.toString?.() ?? String(reason));
     setTimeout(() => process.exit(1), 100).unref();
-=======
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true
-  }, () => {
-    console.log(`serving on port ${port}`);
->>>>>>> 71c8e1181e7d60110b544f185db42c3e8d795026
   });
 })();
