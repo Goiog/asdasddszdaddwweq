@@ -3,6 +3,8 @@ import http from "http";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 
@@ -12,6 +14,36 @@ app.use(express.urlencoded({ extended: false }));
 
 // trust proxy (useful when behind load balancers / reverse proxies)
 app.set("trust proxy", true);
+
+// __dirname shim for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+
+// Serve static images at /Images (files located at server/public/Images)
+// Any request to https://<your-server>/Images/<file> will serve
+// server/public/Images/<file>
+app.use("/Images", express.static(path.join(__dirname, "public", "Images")));
+
+
+// Simple, configurable CORS for APIs (set CORS_ORIGIN in env for production)
+...
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+
+// Crash handlers - log and exit (so orchestrator can restart)
+process.on("uncaughtException", (err) => {
+log("uncaughtException: " + (err?.stack ?? err));
+// give logs a moment to flush
+setTimeout(() => process.exit(1), 100).unref();
+});
+process.on("unhandledRejection", (reason) => {
+log("unhandledRejection: " + (reason as any)?.toString?.() ?? String(reason));
+setTimeout(() => process.exit(1), 100).unref();
+});
+})();
+
 
 // Simple, configurable CORS for APIs (set CORS_ORIGIN in env for production)
 app.use((req, res, next) => {
