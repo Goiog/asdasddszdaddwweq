@@ -27,7 +27,7 @@ app.use("/Images", express.static(path.join(__dirname, "public", "Images")));
 
 
 // Simple, configurable CORS for APIs (set CORS_ORIGIN in env for production)
-...
+
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
@@ -42,7 +42,6 @@ process.on("unhandledRejection", (reason) => {
 log("unhandledRejection: " + (reason as any)?.toString?.() ?? String(reason));
 setTimeout(() => process.exit(1), 100).unref();
 });
-})();
 
 
 // Simple, configurable CORS for APIs (set CORS_ORIGIN in env for production)
