@@ -1,15 +1,3 @@
-/*
-  card-utils.ts — Vite client, Supabase anon key, images served from your Render server
-
-  Assumptions from you:
-   - You're using Vite (so `import.meta.env.VITE_*` env vars are available)
-   - RLS is enabled on `chinese_words` (good)
-   - Images are hosted on a Render server and served via API_BASE like:
-       const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
-       getImageUrl -> `${API_BASE}/Images/${card.id}.webp`
-   - You already have your anon key and want to use Supabase directly from the client
-*/
-
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 export type ChineseWord = {
@@ -24,6 +12,54 @@ export type ChineseWord = {
 };
 
 // -----------------------------
+// Pack configs and helpers
+// -----------------------------
+export type PackConfig = {
+  /** kind of pack: 'random' | 'hsk' | 'tag' | 'search' */
+  kind: 'random' | 'hsk' | 'tag' | 'search';
+  /** desired size of pack */
+  size?: number;
+  /** for kind='hsk' list of levels */
+  levels?: number[];
+  /** for kind='tag' single tag name */
+  tag?: string;
+  /** for kind='search' query string */
+  query?: string;
+  /** human friendly description */
+  description?: string;
+};
+
+export const PACK_CONFIGS: Record<string, PackConfig> = {
+  default: { kind: 'random', size: 10, description: 'Random selection of words' },
+  hsk1: { kind: 'hsk', levels: [1], size: 10, description: 'HSK level 1 pack' },
+  hsk2: { kind: 'hsk', levels: [2], size: 10, description: 'HSK level 2 pack' },
+  hsk1_2: { kind: 'hsk', levels: [1, 2], size: 12, description: 'Mixed HSK 1 & 2' },
+  common_verbs: { kind: 'tag', tag: 'verbs', size: 12, description: 'Common verbs' },
+};
+
+/** Helper: open a pack using either openPack or appropriate queries based on PackConfig */
+export async function getPackFromConfig(cfg: PackConfig | string): Promise<ChineseWord[]> {
+  const conf: PackConfig = typeof cfg === 'string' ? (PACK_CONFIGS[cfg] || PACK_CONFIGS.default) : cfg;
+  const size = conf.size ?? 10;
+  if (conf.kind === 'random') return getRandomWords(size);
+  if (conf.kind === 'hsk') {
+    const levels = conf.levels ?? [];
+    if (levels.length === 0) return getRandomWords(size);
+    // reuse openPack implementation (it already supports hsk:... syntax)
+    return openPack(`hsk:${levels.join(',')}`, size);
+  }
+  if (conf.kind === 'tag') {
+    const tag = conf.tag || '';
+    return openPack(`tag:${tag}`, size);
+  }
+  if (conf.kind === 'search') {
+    const q = conf.query || '';
+    return searchWords(q, size);
+  }
+  return getRandomWords(size);
+}
+
+// -----------------------------
 // Env & Supabase init (Vite)
 // -----------------------------
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL ?? "https://tytxqawlwmwabpblgpmj.supabase.co";
@@ -31,7 +67,7 @@ const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? ""
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? ""; // your Render server origin for images
 
 if (!SUPABASE_ANON_KEY) {
-console.warn(`[card-utils] VITE_SUPABASE_ANON_KEY not set. Set it in your .env for Vite (VITE_SUPABASE_ANON_KEY=<key>).
+  console.warn(`[card-utils] VITE_SUPABASE_ANON_KEY not set. Set it in your .env for Vite (VITE_SUPABASE_ANON_KEY=<key>).
 Note: anon key is safe for client-side use when RLS is enabled.`);
 }
 
