@@ -31,8 +31,8 @@ const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? ""
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? ""; // your Render server origin for images
 
 if (!SUPABASE_ANON_KEY) {
-  console.warn("[card-utils] VITE_SUPABASE_ANON_KEY not set. Set it in your .env for Vite (VITE_SUPABASE_ANON_KEY=<key>).
-Note: anon key is safe for client-side use when RLS is enabled.");
+console.warn(`[card-utils] VITE_SUPABASE_ANON_KEY not set. Set it in your .env for Vite (VITE_SUPABASE_ANON_KEY=<key>).
+Note: anon key is safe for client-side use when RLS is enabled.`);
 }
 
 const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
