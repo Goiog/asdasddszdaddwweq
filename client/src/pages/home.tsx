@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ChineseWord } from "@shared/schema";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ChineseWord } from "@/lib/card-utils";
 import Navigation from "@/components/navigation";
 import PackOpening from "@/components/pack-opening";
 import {
   loadCollectionFromLocalStorage,
   addCardToLocalCollection,
+  fetchAllWords,
 } from "@/lib/card-utils";
-import { fetchAllWords } from "@/lib/card-utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -19,72 +19,31 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query to get all available words (uses client-side Supabase via card-utils)
   const {
     data: allWords = [],
     isLoading,
     isError,
+    refetch,
   } = useQuery<ChineseWord[]>({
     queryKey: ["words"],
     queryFn: fetchAllWords,
-    // optional: keep previous data while refetching
+    // Keep previous data while refetching to avoid UI flashes
     keepPreviousData: true,
-  });
-
-  // Mutation to initialize words from server (server still handles CSV -> DB migration)
-  const initializeMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/words/initialize", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || "Failed to initialize words");
-      }
-
-      return response.json();
-    },
-    onSuccess: (data) => {
-      // data might be { words: [...] } or an array — handle both
-      const count =
-        (data && (data.words?.length ?? (Array.isArray(data) ? data.length : 0))) ||
-        0;
-
-      toast({
-        title: "Words Initialized",
-        description: `Loaded ${count} Chinese words successfully!`,
-      });
-
-      // invalidate the supabase-backed query so fetchAllWords runs again
-      queryClient.invalidateQueries({ queryKey: ["words"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to initialize words",
-        variant: "destructive",
-      });
-    },
+    // stale time short so manual refresh is meaningful in dev; tune as needed
+    staleTime: 1000 * 60,
   });
 
   const handlePackOpened = (cards: ChineseWord[]) => {
-    // Add cards to local collection (addCardToLocalCollection persists to localStorage)
     cards.forEach((card) => addCardToLocalCollection(card));
-    // reload collection from storage and set state (keeps shape consistent)
     setCollection(loadCollectionFromLocalStorage());
   };
 
-  // Auto-initialize words if none exist
   useEffect(() => {
-    if (!isLoading && allWords.length === 0 && !initializeMutation.isLoading) {
-      initializeMutation.mutate();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, allWords.length]);
+    // if local collection changed elsewhere, re-sync once when component mounts
+    setCollection(loadCollectionFromLocalStorage());
+  }, []);
 
-  // Deduplicate collection by card.id (collection stores ChineseWord objects)
+  // dedupe by id
   const uniqueCards = collection.reduce<ChineseWord[]>((acc, item) => {
     if (!acc.find((c) => c.id === item.id)) acc.push(item);
     return acc;
@@ -94,32 +53,50 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Navigation cardCount={uniqueCards.length} totalCards={allWords.length} />
 
-      {/* Show initialization button if no words loaded */}
+      {/* If no words, show message and a manual refresh button that re-queries Supabase */}
       {!isLoading && allWords.length === 0 && (
         <div className="container mx-auto px-4 py-12 text-center">
           <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
-            <h2 className="text-2xl font-bold mb-4">Initialize Card Database</h2>
+            <h2 className="text-2xl font-bold mb-4">No cards found</h2>
             <p className="text-muted-foreground mb-6">
-              Load Chinese words from the database to start playing!
+              It looks like your Supabase table is empty or unreachable. Your front-end now reads directly
+              from Supabase using the client in <code>card-utils</code>.
             </p>
+
             <Button
-              onClick={() => initializeMutation.mutate()}
-              disabled={initializeMutation.isLoading}
+              onClick={async () => {
+                try {
+                  await refetch();
+                  toast({
+                    title: "Refetched",
+                    description: "Tried to reload words from Supabase.",
+                  });
+                  // invalidate to be safe
+                  queryClient.invalidateQueries({ queryKey: ["words"] });
+                } catch (err) {
+                  toast({
+                    title: "Error",
+                    description:
+                      err instanceof Error ? err.message : "Failed to fetch words",
+                    variant: "destructive",
+                  });
+                }
+              }}
               className="w-full"
-              data-testid="initialize-words-btn"
             >
-              {initializeMutation.isLoading ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                "Load Chinese Words"
-              )}
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh words from Supabase
             </Button>
+
+            <p className="text-sm text-muted-foreground mt-4">
+              If this keeps happening, confirm your environment variables are set:
+              <br />
+              <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+            </p>
+
             {isError && (
               <p className="text-destructive text-sm mt-2">
-                Failed to fetch words — check console/network.
+                Failed to fetch words — check console/network and Supabase credentials.
               </p>
             )}
           </div>
