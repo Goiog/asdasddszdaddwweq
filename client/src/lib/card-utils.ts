@@ -1,16 +1,33 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 export type ChineseWord = {
-  id: string;
-  simplified?: string | null;
-  traditional?: string | null;
-  pinyin?: string | null;
-  meaning?: string | null;
-  hsk_level?: number | null;
-  tags?: string[] | null;
-  user_id?: string | null;
+  Id: number;
+  Chinese?: string | null;
+  Pinyin?: string | null;
+  Translation?: string | null;
+  HSK?: string | null;
+  Frequency?: number | null;
+  Theme?: string | null;
+  Image?: string | null;
+  Examples?: string | null;
+  Meaning?: string | null;
 };
 
+function mapDbRowToChineseWord(r: any): ChineseWord {
+  if (!r) return r;
+  return {
+    Id: Number(r.Id ?? 0),
+    Chinese: r.Chinese ?? null,
+    Pinyin: r.Pinyin ?? null,
+    Translation: r.Translation ?? null,
+    HSK: r.HSK ?? null,
+    Frequency: r.Frequency ?? null,
+    Theme: r.Theme ?? null,
+    Image: r.Image ?? null,
+    Examples: r.Examples ?? null,
+    Meaning: r.Meaning ?? null,
+  };
+}
 // -----------------------------
 // Pack configs and helpers
 // -----------------------------
@@ -62,7 +79,7 @@ export async function getPackFromConfig(cfg: PackConfig | string): Promise<Chine
 // -----------------------------
 // Env & Supabase init (Vite)
 // -----------------------------
-const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL ?? "";
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL ?? ""; // your Render server origin for database
 const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? "";
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? ""; // your Render server origin for images
 
@@ -100,14 +117,17 @@ export function getImageUrl(card: { id: string }): string {
 // -----------------------------
 
 export async function fetchAllWords(): Promise<ChineseWord[]> {
-  const res = await supabase.from<ChineseWord>("chinese_words").select("*");
-  return handleResult(res as any);
+  const res = await supabase.from("ChineseDatabase").select("*");
+  if ((res as any).error) throw (res as any).error;
+  const rows = (res as any).data ?? [];
+  return rows.map(mapDbRowToChineseWord);
 }
 
 export async function fetchWordById(id: string): Promise<ChineseWord | null> {
-  const res = await supabase.from<ChineseWord>("chinese_words").select("*").eq("id", id).maybeSingle();
+  const res = await supabase.from("ChineseDatabase").select("*").eq("Id", id).maybeSingle();
   if ((res as any).error) throw (res as any).error;
-  return (res as any).data as ChineseWord | null;
+  const row = (res as any).data ?? null;
+  return row ? mapDbRowToChineseWord(row) : null;
 }
 
 export async function fetchWordsByHSK(hskLevel: number, limit = 500): Promise<ChineseWord[]> {
@@ -120,21 +140,25 @@ export async function fetchWordsByHSK(hskLevel: number, limit = 500): Promise<Ch
 }
 
 export async function searchWords(q: string, limit = 50): Promise<ChineseWord[]> {
+  // returns up to `limit` unique results (deduplicated by Id)
   if (!q || q.trim().length === 0) return [];
   const pattern = `%${q.trim()}%`;
 
-  const [bySimplified, byTraditional, byPinyin] = await Promise.all([
-    supabase.from<ChineseWord>("chinese_words").select("*").ilike("simplified", pattern).limit(limit),
-    supabase.from<ChineseWord>("chinese_words").select("*").ilike("traditional", pattern).limit(limit),
-    supabase.from<ChineseWord>("chinese_words").select("*").ilike("pinyin", pattern).limit(limit),
-  ] as any);
-
-  const map = new Map<string, ChineseWord>();
-  for (const set of [bySimplified, byTraditional, byPinyin]) {
-    if (set.error) continue;
-    (set.data || []).forEach((w: ChineseWord) => map.set(w.id, w));
+  const [r1, r2, r3] = await Promise.all([
+    supabase.from("ChineseDatabase").select("*").ilike("Chinese", pattern).limit(limit),
+    supabase.from("ChineseDatabase").select("*").ilike("Pinyin", pattern).limit(limit),
+    supabase.from("ChineseDatabase").select("*").ilike("Translation", pattern).limit(limit),
+  ]);
+  const all = [
+    ...(r1.data ?? []),
+    ...(r2.data ?? []),
+    ...(r3.data ?? []),
+  ];
+  const map = new Map();
+  for (const row of all) {
+    map.set((row.Id ?? row.id).toString(), row);
   }
-  return Array.from(map.values()).slice(0, limit);
+  return Array.from(map.values()).map(mapDbRowToChineseWord).slice(0, limit);
 }
 
 export async function getRandomWords(count = 10): Promise<ChineseWord[]> {
