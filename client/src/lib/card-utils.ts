@@ -62,7 +62,7 @@ export async function getPackFromConfig(cfg: PackConfig | string): Promise<Chine
 // -----------------------------
 // Env & Supabase init (Vite)
 // -----------------------------
-const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL ?? "https://tytxqawlwmwabpblgpmj.supabase.co";
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL ?? "";
 const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? "";
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? ""; // your Render server origin for images
 
@@ -188,4 +188,59 @@ export async function openPack(packType: string, size = 10): Promise<ChineseWord
 
   const results = await searchWords(packType, Math.max(10, size));
   return results.slice(0, size);
+}
+
+const LOCAL_COLLECTION_KEY = "local_card_collection_v1";
+
+
+/**
+* Load the user's saved collection from localStorage.
+* Returns an array of ChineseWord (empty array when nothing saved or on error).
+*/
+export function loadCollectionFromLocalStorage(): ChineseWord[] {
+try {
+const raw = localStorage.getItem(LOCAL_COLLECTION_KEY);
+if (!raw) return [];
+const parsed = JSON.parse(raw);
+if (!Array.isArray(parsed)) return [];
+return parsed as ChineseWord[];
+} catch (err) {
+console.warn("[card-utils] Failed to load local collection:", err);
+return [];
+}
+}
+
+
+function saveCollectionToLocalStorage(collection: ChineseWord[]) {
+try {
+localStorage.setItem(LOCAL_COLLECTION_KEY, JSON.stringify(collection));
+} catch (err) {
+console.warn("[card-utils] Failed to save local collection:", err);
+}
+}
+
+
+/**
+* Add a card to the local collection (no duplicates by id). Returns the updated collection.
+*/
+export function addCardToLocalCollection(card: ChineseWord): ChineseWord[] {
+const coll = loadCollectionFromLocalStorage();
+if (coll.find((c) => c.id === card.id)) return coll; // already present
+const next = coll.concat(card);
+saveCollectionToLocalStorage(next);
+return next;
+}
+
+
+/** Remove a card by id from the local collection. Returns the updated collection. */
+export function removeCardFromLocalCollection(id: string): ChineseWord[] {
+const next = loadCollectionFromLocalStorage().filter((c) => c.id !== id);
+saveCollectionToLocalStorage(next);
+return next;
+}
+
+
+/** Check whether a card id is in the local collection. */
+export function isCardInLocalCollection(id: string): boolean {
+return loadCollectionFromLocalStorage().some((c) => c.id === id);
 }
