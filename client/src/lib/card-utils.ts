@@ -10,8 +10,8 @@ export const SUPABASE_ANON_KEY =
 export const API_BASE =
   (import.meta as any).env?.VITE_API_BASE_URL ?? ""; // your Render server origin for images
 
-  let _supabase: SupabaseClient | null = null;
-  
+let _supabase: SupabaseClient | null = null;
+
 // Create a Supabase client (exported for tests or direct usage)
 export function createSupabaseClient(): SupabaseClient {
   if (_supabase) return _supabase;
@@ -88,7 +88,7 @@ async function handleResult<T>(res: {
 // -----------------------------
 // Main DB functions (client-side Supabase + RLS)
 // -----------------------------
-const TABLE_NAME = "ChineseDatabase";
+export const TABLE_NAME = "ChineseDatabase";
 
 /** Fetch all words from Supabase table. */
 export async function fetchAllWords(): Promise<ChineseWord[]> {
