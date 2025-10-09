@@ -1,7 +1,6 @@
 // collection.tsx
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { type ChineseWord as RawChineseWord } from "@shared/schema";
 import Navigation from "@/components/navigation";
 import Card from "@/components/card";
 import { NewCardModal as CardModal } from "@/components/new-card-modal";
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Grid, List, Search } from "lucide-react";
-import { loadCollectionFromLocalStorage, fetchAllWords } from "@/lib/card-utils";
+import { loadCollectionFromLocalStorage, fetchAllWords,  type ChineseWord as RawChineseWord  } from "@/lib/card-utils";
 
 /**
  * Normalized word shape used by this component (keeps fields the component expects)
