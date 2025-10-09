@@ -10,15 +10,24 @@ export const SUPABASE_ANON_KEY =
 export const API_BASE =
   (import.meta as any).env?.VITE_API_BASE_URL ?? ""; // your Render server origin for images
 
+  let _supabase: SupabaseClient | null = null;
+  
 // Create a Supabase client (exported for tests or direct usage)
 export function createSupabaseClient(): SupabaseClient {
+  if (_supabase) return _supabase;
+
+  // If envs are missing we still create the client (avoids runtime crash while building),
+  // but it's good to log so you can catch missing envs in dev.
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    // still create a client with empty values so callers don't crash during SSR / builds;
-    // runtime will error on requests if envs are missing.
+    // optional: console.warn("Supabase env missing, createClient will use empty strings");
   }
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    // Keep default options; you can tune timeouts/caching here if needed.
+
+  _supabase = createClient(SUPABASE_URL || "", SUPABASE_ANON_KEY || "", {
+    // you can tune options here, e.g. auth/persistSession depending on your needs
+    // avoid introducing any packages that might import react-query
   });
+
+  return _supabase;
 }
 
 export type ChineseWord = {
