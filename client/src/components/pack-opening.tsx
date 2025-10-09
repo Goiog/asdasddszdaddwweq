@@ -33,17 +33,19 @@ export default function PackOpening() {
   );
 
   // Query: load all words (used as baseline)
-  const allWordsQuery = useQuery(["words", "all"], fetchAllWords, {
+  const allWordsQuery = useQuery({
+    queryKey: ["words", "all"],
+    queryFn: fetchAllWords,
     staleTime: 1000 * 60 * 5,
     cacheTime: 1000 * 60 * 10,
   });
 
   // Query: search (only run when q provided)
-  const searchQuery = useQuery(
-    ["words", "search", q],
-    () => searchWords(q, 200),
-    { enabled: q.trim() !== "" }
-  );
+  const searchQuery = useQuery({
+    queryKey: ["words", "search", q],
+    queryFn: () => searchWords(q, 200),
+    enabled: q.trim() !== "",
+  });
 
   // Expose displayed list (search takes precedence)
   const baseList = useMemo(() => {
