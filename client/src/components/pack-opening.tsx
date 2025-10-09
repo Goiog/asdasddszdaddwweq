@@ -10,7 +10,7 @@ import {
   removeCardFromLocalCollection,
   isCardInLocalCollection,
   ChineseWord,
-} from "./card-utils";
+} from "@/lib/card-utils";
 
 /**
  * This component replaces CSV fetches with Supabase-backed queries
