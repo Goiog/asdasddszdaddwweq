@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { type ChineseWord } from "@shared/schema";
-import { PACK_CONFIGS } from "@/lib/card-utils";
+import { PACK_CONFIGS, ChineseWord } from "@/lib/card-utils";
 import Card from "./card";
 import { NewCardModal as CardModal } from "./new-card-modal";
 import { Button } from "@/components/ui/button";
