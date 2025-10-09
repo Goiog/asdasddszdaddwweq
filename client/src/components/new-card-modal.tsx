@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { type ChineseWord } from "@shared/schema";
 import { ChevronLeft, ChevronRight, ThumbsDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import pinyin from "pinyin";
 import Card, { CardVisual } from "./card";
+import type { ChineseWord } from "@/lib/card-utils";
+
 
 // Import the existing functions we need
 function speakChinese(text: string) {
