@@ -1,5 +1,4 @@
-import { type ChineseWord } from "@shared/schema";
-import { getImageUrl } from "@/lib/card-utils";
+import { getImageUrl,  type ChineseWord as RawChineseWord  } from "@/lib/card-utils";
 import { useState } from "react";
 import { pinyinNumericToAccents } from "./pinyinUtils";
 
