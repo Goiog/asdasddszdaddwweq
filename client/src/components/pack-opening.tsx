@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChineseWord } from "@/lib/card-utils";
+import type { ChineseWord } from "@/lib/card-utils";
+import { createSupabaseClient, TABLE_NAME } from "@/lib/card-utils"; // <-- new import
 import Card from "./card";
 import { NewCardModal as CardModal } from "./new-card-modal";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Exercises from "./exercises";
 import RecognitionRecallExercise from "./recognition-recall-exercise"; // ✅ import at top
-
-// NOTE: this file was loaded from your upload. See original for reference. :contentReference[oaicite:0]{index=0}
 
 interface PackOpeningProps {
   onPackOpened: (cards: (ChineseWord & { unlocked?: boolean; isNew?: boolean })[]) => void;
@@ -25,14 +24,14 @@ export const PACK_CONFIGS: Record<string, PackConfig> = {
   },
   hsk2: {
     count: 6,
-    hskLevel: "2", 
+    hskLevel: "2",
     title: "HSK Level 2 Pack",
     description: "750 elementary Chinese words"
   },
   hsk3: {
     count: 6,
     hskLevel: "3",
-    title: "HSK Level 3 Pack", 
+    title: "HSK Level 3 Pack",
     description: "1000 intermediate Chinese words"
   },
   hsk4: {
@@ -49,7 +48,7 @@ export const PACK_CONFIGS: Record<string, PackConfig> = {
   },
   hsk6: {
     count: 6,
-    hskLevel: "6", 
+    hskLevel: "6",
     title: "HSK Level 6 Pack",
     description: "1100 fluent level words"
   }
@@ -69,11 +68,14 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   // local state to hold the uniqueCards (either from prop or fetched)
   const [collectionUnique, setCollectionUnique] = useState<any[]>(uniqueCardsProp ?? []);
 
+  // Helper: create supabase client (uses envs configured in card-utils)
+  const supabase = createSupabaseClient();
+
   // Helper functions for HSK styling (moved inside component)
   const getHSKGradient = (level: number): string => {
     const gradients = {
       1: "from-green-400 to-green-600",
-      2: "from-blue-400 to-blue-600", 
+      2: "from-blue-400 to-blue-600",
       3: "from-purple-400 to-purple-600",
       4: "from-orange-400 to-orange-600",
       5: "from-red-400 to-red-600",
@@ -125,7 +127,7 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
 
   // predicate copied from collection.tsx snippet you provided:
   const isUnlocked = (word: any) => {
-    return collectionUnique.some((item: any) => item.word?.id === word.id);
+    return collectionUnique.some((item: any) => item.word?.id === word.id || item.id === word.id);
   };
 
   // whenever collectionUnique changes, recompute unlocked flag on revealed cards (preserve isNew)
@@ -135,15 +137,83 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
     }
   }, [collectionUnique]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // helper: pick N random unique items from array
+  function pickRandom<T>(arr: T[], n: number) {
+    const out: T[] = [];
+    const copy = arr.slice();
+    while (out.length < n && copy.length > 0) {
+      const i = Math.floor(Math.random() * copy.length);
+      out.push(...copy.splice(i, 1));
+    }
+    return out;
+  }
+
+  /**
+   * Core DB logic:
+   * - fetches candidate rows from the table (using supabase client)
+   * - robustly detects an HSK-level field inside rows (tries several common names)
+   * - filters by pack config's hskLevel, then picks `count` random cards
+   *
+   * This approach pulls the rows client-side and samples locally to avoid depending on
+   * DB ordering functions; it's tolerant of different column names for the HSK level.
+   */
+  async function fetchCardsForPack(packType: string) {
+    const config = PACK_CONFIGS[packType];
+    if (!config) throw new Error("Unknown pack type: " + packType);
+
+    // fetch rows from DB table
+    const { data, error } = await supabase.from(TABLE_NAME).select("*").limit(1000); // limit to avoid huge fetches
+    if (error) {
+      throw error;
+    }
+    const rows: any[] = Array.isArray(data) ? data : [];
+
+    // try to detect which property in the row represents the HSK level
+    const hskFieldCandidates = ["hskLevel", "HSKLevel", "hsk_level", "hsk", "level", "HSK"];
+    // find a candidate that appears in at least one row
+    const detectedField = hskFieldCandidates.find(f => rows.some(r => r && Object.prototype.hasOwnProperty.call(r, f)));
+    // fallback: use any property that contains "hsk" (case-insensitive)
+    const fallbackField = Object.keys(rows[0] ?? {}).find(k => /hsk/i.test(k));
+
+    const usedField = detectedField ?? fallbackField;
+
+    // filter rows that match the requested HSK level
+    const candidates = rows.filter(r => {
+      if (!usedField) {
+        // If we couldn't detect a field, be permissive and include everything
+        return true;
+      }
+      const rawVal = r[usedField];
+      if (rawVal === undefined || rawVal === null) return false;
+      return String(rawVal) === String(config.hskLevel);
+    });
+
+    // if there are fewer candidates than requested, fall back to sampling from all rows
+    const pool = candidates.length >= config.count ? candidates : rows;
+
+    const sampled = pickRandom(pool, config.count);
+
+    // Map sampled rows to the expected ChineseWord shape (best-effort)
+    const normalized: ChineseWord[] = sampled.map((r: any) => {
+      return {
+        // Keep original row fields — your Card component probably expects fields like `id`, `Chinese`, `Pinyin`, `Translation`, etc.
+        ...r,
+      } as ChineseWord;
+    });
+
+    return normalized;
+  }
+
   const openPack = async (packType: string) => {
     setIsOpening(true);
     setOpeningProgress(0);
     setRevealedCards([]);
     setShowCards(false);
 
+    // progress simulation (will keep running until progress reaches 100 or cleared)
+    let progressInterval: any = null;
     try {
-      // Simulate opening progress
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setOpeningProgress((prev) => {
           if (prev >= 100) {
             clearInterval(progressInterval);
@@ -153,50 +223,46 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
         });
       }, 100);
 
-      // Make API call to open pack
-      const response = await fetch("/api/packs/open", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packType, userId }),
+      // *** NEW: fetch the cards directly from the database (Supabase) ***
+      const cardsFromDb = await fetchCardsForPack(packType);
+
+      // Mark which cards are unlocked by checking collectionUnique, set isNew true
+      const processedCards: (ChineseWord & { unlocked?: boolean; isNew?: boolean })[] = cardsFromDb.map((card: ChineseWord) => {
+        const cardIsUnlocked = isUnlocked(card);
+        return {
+          ...card,
+          unlocked: cardIsUnlocked,
+          isNew: true,
+        };
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to open pack");
-      }
-
-      const data = await response.json();
-
-      // Wait for progress to complete
+      // ensure progress reaches 100 before revealing UI (gives animation time)
       setTimeout(() => {
-        // compute unlocked for each card using the same predicate as collection.tsx
-        // and set isNew to true for all cards obtained in this pack opening session
-        const processedCards: (ChineseWord & { unlocked?: boolean; isNew?: boolean })[] = (data.cards ?? []).map((card: ChineseWord) => {
-          const cardIsUnlocked = isUnlocked(card);
-          return {
-            ...card,
-            unlocked: cardIsUnlocked,
-            isNew: true, // All cards from pack opening are considered obtained in this session
-          };
-        });
+        // clear interval and finalize progress
+        if (progressInterval) clearInterval(progressInterval);
+        setOpeningProgress(100);
 
         setRevealedCards(processedCards);
         setShowCards(true);
 
         toast({
           title: "Pack Opened!",
-          description: `You received ${processedCards.length} new cards!`,
+          description: `You received ${processedCards.length} cards.`,
         });
-      }, 1200);
+      }, 700); // small delay to let animation feel natural
 
     } catch (error) {
       console.error("Error opening pack:", error);
+      if (progressInterval) clearInterval(progressInterval);
+
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to open pack",
         variant: "destructive",
       });
+
       setIsOpening(false);
+      setOpeningProgress(0);
     }
   };
 
@@ -219,9 +285,9 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
     // ensure we pass cards with unlocked flag and isNew flag
     const out = cards.map((c: any) => {
       const cardIsUnlocked = isUnlocked(c);
-      return { 
-        ...c, 
-        unlocked: cardIsUnlocked, 
+      return {
+        ...c,
+        unlocked: cardIsUnlocked,
         isNew: true // All cards from pack opening are considered obtained in this session
       };
     });
