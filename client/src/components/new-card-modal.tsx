@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import pinyin from "pinyin";
 import Card, { CardVisual } from "./card";
 import type { ChineseWord } from "@/lib/card-utils";
+import { getLayoutImageUrl } from "@/lib/card-utils"; // <-- new import
 
 
 // Import the existing functions we need
@@ -140,6 +141,9 @@ export function NewCardModal({
 
   if (!isOpen || !card) return null;
 
+  // Compute layout URL for the main card using render server helper
+  const layoutUrl = getLayoutImageUrl(card.hsklevel ?? 1);
+
   // Navigation functions - clone array before sorting to avoid mutating parent state
   const sortedCards = [...allCards].sort((a, b) => Number(a.id) - Number(b.id));
   const currentIndex = sortedCards.findIndex(c => c.id === card.id);
@@ -249,8 +253,6 @@ export function NewCardModal({
             </button>
           </>
         )}
-
-        {/* Card navigation indicator */}
 
         {/* Top Section */}
         <div className="flex gap-8 items-start">
@@ -367,7 +369,9 @@ export function NewCardModal({
           </div>
           {/* Right side — Card visual with dislike button */}
           <div className="relative flex-shrink-0">
-            <CardVisual card={card} size="lg" />
+            {/* Pass layoutUrl to CardVisual so overlay comes from render server */}
+            {/* `as any` used here so this remains non-breaking if CardVisual's props haven't been typed yet */}
+            <CardVisual {...({ card, size: "lg", layoutUrl } as any)} />
 
             <button
               onClick={handleDislike}
@@ -424,13 +428,19 @@ export function NewCardModal({
 
                     {/* Card list */}
                     <div className="flex gap-3 overflow-hidden flex-1">
-                      {visibleCards.map((relatedCard) => (
-                        <Card
-                          key={relatedCard.id}
-                          card={relatedCard}
-                          onClick={() => onCardChange && onCardChange(relatedCard)}
-                        />
-                      ))}
+                      {visibleCards.map((relatedCard) => {
+                        // compute layout url per related card (so they each use the right HSK layout)
+                        const relatedLayoutUrl = getLayoutImageUrl(relatedCard.hsklevel ?? 1);
+                        return (
+                          // again cast to any to avoid TS errors if Card prop types not updated yet
+                          <Card
+                            key={relatedCard.id}
+                            card={relatedCard as any}
+                            onClick={() => onCardChange && onCardChange(relatedCard)}
+                            {...({ layoutUrl: relatedLayoutUrl } as any)}
+                          />
+                        );
+                      })}
                     </div>
 
                     {/* Right arrow */}
