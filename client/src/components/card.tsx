@@ -1,4 +1,8 @@
-import { getImageUrl,  type ChineseWord as RawChineseWord  } from "@/lib/card-utils";
+import { 
+  getImageUrl, 
+  getLayoutImageUrl,  // 👈 new helper imported from card-utils
+  type ChineseWord
+} from "@/lib/card-utils";
 import { useState } from "react";
 import { pinyinNumericToAccents } from "./pinyinUtils";
 
@@ -8,22 +12,13 @@ interface CardVisualProps {
   size?: "sm" | "lg";
 }
 
-
 export function CardVisual({ card, size = "sm" }: CardVisualProps) {
   const [imageError, setImageError] = useState(false);
 
   const dimensions = size === "lg" ? "h-[32rem]" : "h-72";
-  const LayoutColorMap: Record<string, string> = {
-    "1": "/api/images/Layout_HSK1.png",
-    "2": "/api/images/Layout_HSK2.png",
-    "3": "/api/images/Layout_HSK3.png",
-    "4": "/api/images/Layout_HSK4.png",
-    "5": "/api/images/Layout_HSK5.png",
-    "6": "/api/images/Layout_HSK6.png",
-    default: "/api/images/Layout_HSK1.png",
-  };
 
-  const LayoutClass = LayoutColorMap[card.hsklevel?.toString() ?? "default"];
+  // 👇 Dynamic layout image URL fetched from render server
+  const layoutUrl = getLayoutImageUrl(card.hsklevel ?? 1);
 
   return (
     <div
@@ -38,20 +33,22 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
             src={getImageUrl(card)}
             alt=""
             className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br" />
         )}
       </div>
 
-      {/* Overlay Image */}
+      {/* Overlay Image from render server */}
       <div className="absolute inset-0 pointer-events-none">
         <img
-          src={LayoutClass}
+          src={layoutUrl}
           alt="Overlay"
           className="w-full h-full object-cover"
         />
       </div>
+
       {/* Card Content Overlay */}
       <div
         className={`${size === "lg" ? "pb-1" : "pb-0"} absolute inset-0 flex flex-col h-full  text-center font-sans`}
@@ -65,7 +62,6 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
 
         <div className="flex flex-col items-center mt-0.1 font-chinese">
           <div className="relative inline-block whitespace-nowrap leading-[1]">
-
             {/* Text */}
             <div
               className={`${size === "lg" ? "text-[2em]" : "text-[1.2em]"} relative z-10
@@ -90,7 +86,6 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
 }
 
 interface CardProps {
-  // accept both flags — server uses isNew; client code (pack-opening) sets unlocked
   card: ChineseWord & { isNew?: boolean; unlocked?: boolean };
   onClick?: () => void;
   showAnimation?: boolean;
@@ -109,10 +104,7 @@ export default function Card({
     ${showAnimation ? "animate-card-reveal" : ""}
   `.trim();
 
-  // Decide which badge to show:
-  // - True NEW badge only if card was obtained in this pack AND the user did not already own it
   const showNewBadge = card.isNew === true && card.unlocked !== true;
-  // - If it was obtained but user already owned it, show a small "Owned" / duplicate badge
   const showOwnedDuplicateBadge = card.isNew === true && card.unlocked === true;
 
   return (
@@ -121,7 +113,6 @@ export default function Card({
       onClick={onClick}
       data-testid={`card-${card.id}`}
     >
-      {/* NEW badge: only when it's truly new to the user */}
       {showNewBadge && (
         <span className="absolute top-2 right-2 z-50 bg-gradient-to-r from-green-400 to-green-600 
         text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-bounce">
@@ -129,7 +120,6 @@ export default function Card({
         </span>
       )}
 
-      {/* Duplicate/Owned badge when the card was obtained but already unlocked */}
       {showOwnedDuplicateBadge && (
         <span className="absolute top-2 right-2 z-50 bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
           ✓ OWNED
