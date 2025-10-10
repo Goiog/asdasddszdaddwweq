@@ -48,7 +48,8 @@ export type ChineseWord = {
 };
 
 export function getLayoutImageUrl(hskLevel: number): string {
-  return `${RENDER_SERVER_URL}/layouts/Layout_HSK${hskLevel}.png`;
+  const base = API_BASE || "";
+  return `${base}/layouts/Layout_HSK${hskLevel}.png`;
 }
 
 
