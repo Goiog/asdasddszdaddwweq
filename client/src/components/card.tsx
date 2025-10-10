@@ -1,7 +1,7 @@
 import { 
   getImageUrl, 
   getLayoutImageUrl,  // 👈 new helper imported from card-utils
-  type ChineseWord as RawChineseWord  
+  type ChineseWord
 } from "@/lib/card-utils";
 import { useState } from "react";
 import { pinyinNumericToAccents } from "./pinyinUtils";
