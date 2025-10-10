@@ -195,9 +195,24 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
 
     // Map sampled rows to the expected ChineseWord shape (best-effort)
     const normalized: ChineseWord[] = sampled.map((r: any) => {
+      const Id = r.Id ?? r.id ?? r.IdCard ?? null;
       return {
-        // Keep original row fields — your Card component probably expects fields like `id`, `Chinese`, `Pinyin`, `Translation`, etc.
-        ...r,
+        id: String(Id ?? r.Id ?? r.id ?? ""),
+        Id: typeof Id === "number" ? Id : Id ? Number(Id) : undefined,
+        Chinese: r.Chinese ?? r.chinese ?? null,
+        Pinyin: r.Pinyin ?? r.pinyin ?? null,
+        Translation: r.Translation ?? r.translation ?? null,
+        HSK: r.HSK ?? r.hsk ?? null,
+        Frequency:
+          typeof r.Frequency === "number"
+            ? r.Frequency
+            : r.Frequency
+            ? Number(r.Frequency)
+            : null,
+        Theme: r.Theme ?? r.theme ?? null,
+        Image: r.Image ?? r.image ?? null,
+        Examples: r.Examples ?? r.examples ?? null,
+        Meaning: r.Meaning ?? r.meaning ?? null,
       } as ChineseWord;
     });
 
@@ -437,6 +452,7 @@ function PackCard({ packType, title, description, details, price, gradient, icon
           <div className="text-white font-semibold">{details}</div>
         </div>
         <Button 
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
           className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 px-6 rounded-xl transition-colors"
           data-testid={`open-pack-${packType}`}
         >
