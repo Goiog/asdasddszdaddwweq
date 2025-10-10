@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Grid, List, Search } from "lucide-react";
-import { loadCollectionFromLocalStorage, fetchAllWords,  type ChineseWord as RawChineseWord  } from "@/lib/card-utils";
+import { loadCollectionFromLocalStorage, fetchAllWords,  type ChineseWord as RawChineseWord, API_BASE  } from "@/lib/card-utils";
 
 /**
  * Normalized word shape used by this component (keeps fields the component expects)
@@ -333,6 +333,7 @@ export default function Collection() {
           </div>
         )}
 
+        
         {/* Card Grid/List */}
         {filteredCards.length > 0 && (
           <div
@@ -352,7 +353,7 @@ export default function Collection() {
                 />
                 {!unlocked && (
                   <div className="absolute inset-0 bg-black/90 rounded-2xl flex items-center justify-center">
-                    <img src="/api/images/Locked.png" alt="Locked" className="w-16 h-16 opacity-80" />
+                    <img src={`${API_BASE}/Images/Locked.png`} alt="Locked" className="w-16 h-16 opacity-80" />
                   </div>
                 )}
               </div>
