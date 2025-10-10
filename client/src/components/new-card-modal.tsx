@@ -10,6 +10,7 @@ import { getLayoutImageUrl } from "@/lib/card-utils"; // <-- new import
 
 // Import the existing functions we need
 function speakChinese(text: string) {
+  if (!text) return;
   if ("speechSynthesis" in window) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "zh-CN";
@@ -18,7 +19,7 @@ function speakChinese(text: string) {
 }
 
 function normalizeChinese(text: string) {
-  return text
+  return (text ?? "")
     .replace(/\s+/g, "") // remove spaces
     .replace(/[，。！？,.!?]/g, "") // remove punctuation
     .replace(/第一/g, "第1")
@@ -67,13 +68,14 @@ function listenChinese(
 }
 
 function renderPinyinWithCharacters(text: string) {
-  const result = pinyin(text, {
+  const safeText = text ?? "";
+  const result = pinyin(safeText, {
     style: pinyin.STYLE_TONE,
     heteronym: false,
   });
 
-  const characters = text.split("");
-  
+  const characters = safeText.split("");
+
   return (
     <span>
       {characters.map((char, i) => (
@@ -87,10 +89,13 @@ function renderPinyinWithCharacters(text: string) {
 }
 
 function renderDiffWithPinyin(expected: string, actual: string) {
-  const expectedChars = expected.split("");
-  const actualChars = actual.split("");
+  const expectedSafe = expected ?? "";
+  const actualSafe = actual ?? "";
 
-  const result = pinyin(actual, {
+  const expectedChars = expectedSafe.split("");
+  const actualChars = actualSafe.split("");
+
+  const result = pinyin(actualSafe, {
     style: pinyin.STYLE_TONE,
     heteronym: false,
   });
@@ -141,7 +146,8 @@ export function NewCardModal({
 
   if (!isOpen || !card) return null;
 
-  // Compute layout URL for the main card using render server helper
+  // Ensure we always work with strings
+  const chineseText = typeof card.chinese === "string" ? card.chinese : "";
   const layoutUrl = getLayoutImageUrl(card.hsklevel ?? 1);
 
   // Navigation functions - clone array before sorting to avoid mutating parent state
@@ -210,9 +216,12 @@ export function NewCardModal({
     }
   };
 
-  // Split into unique characters
-  const characters = Array.from(new Set(card.chinese.split("")));
-  const examples = card.examples ? card.examples.split(/\d+\.\s*/).filter(Boolean) : [];
+  // Split into unique characters (safe)
+  const characters = Array.from(new Set(chineseText.split("").filter(Boolean)));
+
+  const examples = typeof card.examples === "string" && card.examples.trim().length > 0
+    ? card.examples.split(/\d+\.\s*/).filter(Boolean)
+    : [];
 
   return (
     <div
@@ -259,9 +268,9 @@ export function NewCardModal({
           {/* Left side */}
           <div className="flex-1 space-y-4">
             <div className="flex items-baseline gap-3 mb-4">
-              {card.chinese && (
+              {chineseText && (
                 <h3 className="text-4xl font-bold text-foreground">
-                  {card.chinese}
+                  {chineseText}
                 </h3>
               )}
               {card.translation && (
@@ -272,7 +281,7 @@ export function NewCardModal({
               <button
                 className="w-10 h-10 flex items-center justify-center bg-secondary hover:bg-secondary/80 
                            text-secondary-foreground rounded-lg transition-colors ml-2"
-                onClick={() => speakChinese(card.chinese)}
+                onClick={() => speakChinese(chineseText)}
                 data-testid="speak-button"
               >
                 🔊
@@ -296,7 +305,8 @@ export function NewCardModal({
             {/* Examples */}
             {examples.length > 0 && (
               <div className="space-y-3">
-                {examples.map((example, index) => {
+                {examples.map((rawExample, index) => {
+                  const example = (rawExample ?? "").trim();
                   const exampleState = exampleStates[index] || { userSaid: null, isCorrect: null, translation: null };
                   
                   return (
@@ -307,11 +317,11 @@ export function NewCardModal({
                       {/* Chinese with pinyin */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-lg leading-relaxed">
-                          {renderPinyinWithCharacters(example.trim())}
+                          {renderPinyinWithCharacters(example)}
                         </div>
                         <div className="flex gap-2 items-center">
                           <button
-                            onClick={() => speakChinese(example.trim())}
+                            onClick={() => speakChinese(example)}
                             className="px-3 py-1 rounded bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm"
                             data-testid={`speak-example-${index}`}
                           >
@@ -319,7 +329,7 @@ export function NewCardModal({
                           </button>
                           <button
                             onClick={() =>
-                              listenChinese(example.trim(), (result, correct) => {
+                              listenChinese(example, (result, correct) => {
                                 updateExampleState(index, { userSaid: result, isCorrect: correct });
                               })
                             }
@@ -330,7 +340,7 @@ export function NewCardModal({
                           </button>
                           <button
                             onClick={async () => {
-                              const result = await translateChineseToEnglish(example.trim());
+                              const result = await translateChineseToEnglish(example);
                               updateExampleState(index, { translation: result });
                             }}
                             className="px-3 py-1 rounded bg-accent hover:bg-accent/80 text-accent-foreground text-sm"
@@ -345,7 +355,7 @@ export function NewCardModal({
                       {exampleState.userSaid && (
                         <div className="mt-2 text-lg text-foreground flex items-center gap-2">
                           <span>
-                            {renderDiffWithPinyin(example.trim(), exampleState.userSaid)}
+                            {renderDiffWithPinyin(example, exampleState.userSaid)}
                           </span>
                           {exampleState.isCorrect ? (
                             <span className="text-green-600">✅</span>
@@ -391,7 +401,7 @@ export function NewCardModal({
           <div className="mt-6 space-y-4">
             {characters.map((char) => {
               const related = allCards
-                .filter((c) => c.chinese.includes(char) && c.id !== card.id)
+                .filter((c) => (c.chinese ?? "").includes(char) && c.id !== card.id)
                 .sort((a, b) => Number(a.id) - Number(b.id));
 
               if (related.length === 0) return null;
