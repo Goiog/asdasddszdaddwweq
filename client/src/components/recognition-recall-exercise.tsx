@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo,useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { type ChineseWord } from "@shared/schema";
+import type { ChineseWord } from "@/lib/card-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card as UICard } from "@/components/ui/card";
