@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Environment — use the Vite env names you provided
+ * Environment — use the Vite env names you provIded
  */
 export const SUPABASE_URL =
   (import.meta as any).env?.VITE_SUPABASE_URL ?? ""; // your Render server origin for database
@@ -16,7 +16,7 @@ let _supabase: SupabaseClient | null = null;
 export function createSupabaseClient(): SupabaseClient {
   if (_supabase) return _supabase;
 
-  // If envs are missing we still create the client (avoids runtime crash while building),
+  // If envs are missing we still create the client (avoIds runtime crash while building),
   // but it's good to log so you can catch missing envs in dev.
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     // optional: console.warn("Supabase env missing, createClient will use empty strings");
@@ -24,7 +24,7 @@ export function createSupabaseClient(): SupabaseClient {
 
   _supabase = createClient(SUPABASE_URL || "", SUPABASE_ANON_KEY || "", {
     // you can tune options here, e.g. auth/persistSession depending on your needs
-    // avoid introducing any packages that might import react-query
+    // avoId introducing any packages that might import react-query
   });
 
   return _supabase;
@@ -34,8 +34,8 @@ export type ChineseWord = {
   id: string;
   Id?: number; // original numeric Id if you need it
   Chinese?: string | null;
-  Pinyin?: string | null;
-  Translation?: string | null;
+  Pinyin?: string;
+  Translation?: string;
   HSK?: string | null;
   Frequency?: number | null;
   Theme?: string | null;
@@ -56,14 +56,14 @@ export function getLayoutImageUrl(hskLevel: number): string {
 /** Map a DB row (Supabase) to our frontend ChineseWord shape */
 function mapDbRowToChineseWord(r: any): ChineseWord {
   if (!r) return null as any;
-  const Id = r.Id ?? r.id ?? r.IdCard ?? null; // be permissive
+  const Id = r.Id ?? r.Id ?? r.IdCard ?? null; // be permissive
   return {
-    id: String(Id ?? r.Id ?? r.id ?? ""),
-    Id: typeof Id === "number" ? Id : Id ? Number(Id) : undefined,
-    Chinese: r.Chinese ?? r.chinese ?? null,
-    Pinyin: r.Pinyin ?? r.pinyin ?? null,
-    Translation: r.Translation ?? r.translation ?? null,
-    HSK: r.HSK ?? r.hsk ?? null,
+    id: String(Id ?? r.Id ?? r.id),
+    Id: typeof Id === "number" ? Id : Id,
+    Chinese: r.Chinese ?? r.chinese,
+    Pinyin: r.Pinyin ?? r.pinyin,
+    Translation: r.Translation ?? r.translation,
+    HSK: r.HSK ?? r.hsk,
     Frequency:
       typeof r.Frequency === "number"
         ? r.Frequency
@@ -92,7 +92,7 @@ async function handleResult<T>(res: {
 }
 
 // -----------------------------
-// Main DB functions (client-side Supabase + RLS)
+// Main DB functions (client-sIde Supabase + RLS)
 // -----------------------------
 export const TABLE_NAME = "ChineseDatabase";
 
@@ -104,15 +104,15 @@ export async function fetchAllWords(): Promise<ChineseWord[]> {
   return (rows || []).map(mapDbRowToChineseWord).filter(Boolean);
 }
 
-/** Fetch a single word by numeric id (or string) */
-export async function fetchWordById(id: string): Promise<ChineseWord | null> {
+/** Fetch a single word by numeric Id (or string) */
+export async function fetchWordById(Id: string): Promise<ChineseWord | null> {
   const supabase = createSupabaseClient();
   // Id is numeric in DB; be permissive
-  const numeric = Number(id);
+  const numeric = Number(Id);
   const res = await supabase
     .from(TABLE_NAME)
     .select("*")
-    .eq("Id", Number.isFinite(numeric) ? numeric : id)
+    .eq("Id", Number.isFinite(numeric) ? numeric : Id)
     .limit(1);
   const rows = await handleResult<any[]>(res);
   if (!rows || rows.length === 0) return null;
@@ -136,7 +136,7 @@ export async function searchWords(q: string, limit = 50): Promise<ChineseWord[]>
   return (data || []).map(mapDbRowToChineseWord);
 }
 
-/** Get n random words (client-side randomness). */
+/** Get n random words (client-sIde randomness). */
 export async function getRandomWords(count = 10): Promise<ChineseWord[]> {
   const all = await fetchAllWords();
   // simple shuffle
@@ -151,17 +151,17 @@ export async function getRandomWords(count = 10): Promise<ChineseWord[]> {
 // Image helper (use your Render server)
 // -----------------------------
 /**
- * getImageUrl expects a card with `id` (string). It will return:
- *  - API_BASE + /Images/{id}.webp  (if API_BASE set)
- *  - /Images/{id}.webp             (if API_BASE empty, same-origin)
+ * getImageUrl expects a card with `Id` (string). It will return:
+ *  - API_BASE + /Images/{Id}.webp  (if API_BASE set)
+ *  - /Images/{Id}.webp             (if API_BASE empty, same-origin)
  *
  * If your DB stores full image URLs in `Image`, callers can prefer that field.
  */
-export function getImageUrl(card: { id: string; Image?: string | null }): string {
+export function getImageUrl(card: { Id: string; Image?: string | null }): string {
   // If API_BASE is empty we'll fall back to a relative path (useful for same-origin setups)
   const base = API_BASE || "";
   // keep same format you already use
-  return `${base}/Images/${card.id}.webp`;
+  return `${base}/Images/${card.Id}.webp`;
 }
 
 // -----------------------------
@@ -172,10 +172,10 @@ const LOCAL_COLLECTION_KEY = "my_app_collection_v1";
 /** Normalize a stored item (backwards compat) */
 function normalizeStoredCard(c: any): ChineseWord {
   if (!c) return c;
-  // ensure id is string
+  // ensure Id is string
   return {
     ...c,
-    id: typeof c.id === "number" ? String(c.id) : c.id ?? String(c.Id ?? ""),
+    Id: typeof c.Id === "number" ? String(c.Id) : c.Id ?? String(c.Id ?? ""),
   };
 }
 
@@ -206,20 +206,20 @@ function saveCollectionToLocalStorage(collection: ChineseWord[]) {
 /** Add a card to the local collection. Returns the updated collection. */
 export function addCardToLocalCollection(card: ChineseWord): ChineseWord[] {
   const current = loadCollectionFromLocalStorage();
-  if (current.some((c) => c.id === card.id)) return current;
+  if (current.some((c) => c.Id === card.Id)) return current;
   const next = [normalizeStoredCard(card), ...current];
   saveCollectionToLocalStorage(next);
   return next;
 }
 
-/** Remove a card by id from the local collection. Returns the updated collection. */
-export function removeCardFromLocalCollection(id: string): ChineseWord[] {
-  const next = loadCollectionFromLocalStorage().filter((c) => c.id !== id);
+/** Remove a card by Id from the local collection. Returns the updated collection. */
+export function removeCardFromLocalCollection(Id: string): ChineseWord[] {
+  const next = loadCollectionFromLocalStorage().filter((c) => c.Id !== Id);
   saveCollectionToLocalStorage(next);
   return next;
 }
 
-/** Check whether a card id is in the local collection. */
-export function isCardInLocalCollection(id: string): boolean {
-  return loadCollectionFromLocalStorage().some((c) => c.id === id);
+/** Check whether a card Id is in the local collection. */
+export function isCardInLocalCollection(Id: string): boolean {
+  return loadCollectionFromLocalStorage().some((c) => c.Id === Id);
 }

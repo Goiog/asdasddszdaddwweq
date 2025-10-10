@@ -147,16 +147,16 @@ export function NewCardModal({
   if (!isOpen || !card) return null;
 
   // Ensure we always work with strings
-  const chineseText = typeof card.chinese === "string" ? card.chinese : "";
-  const layoutUrl = getLayoutImageUrl(card.hsklevel ?? 1);
+  const chineseText = typeof card.Chinese === "string" ? card.Chinese : "";
+  const layoutUrl = getLayoutImageUrl(card.HSK ?? 1);
 
   // Navigation functions - clone array before sorting to avoid mutating parent state
-  const sortedCards = [...allCards].sort((a, b) => Number(a.id) - Number(b.id));
-  const currentIndex = sortedCards.findIndex(c => c.id === card.id);
+  const sortedCards = [...allCards].sort((a, b) => Number(a.Id) - Number(b.Id));
+  const currentIndex = sortedCards.findIndex(c => c.Id === card.Id);
   
   // Guard against missing cards
   if (currentIndex === -1) {
-    console.warn('Current card not found in allCards array:', card.id);
+    console.warn('Current card not found in allCards array:', card.Id);
   }
   const canGoPrevious = currentIndex > 0;
   const canGoNext = currentIndex < sortedCards.length - 1;
@@ -176,7 +176,7 @@ export function NewCardModal({
   // Dislike function
   const handleDislike = async () => {
     try {
-      await apiRequest("POST", "/api/cards/dislike", { cardId: card.id });
+      await apiRequest("POST", "/api/cards/dislike", { cardId: card.Id });
       
       toast({
         title: "Card disliked",
@@ -219,8 +219,8 @@ export function NewCardModal({
   // Split into unique characters (safe)
   const characters = Array.from(new Set(chineseText.split("").filter(Boolean)));
 
-  const examples = typeof card.examples === "string" && card.examples.trim().length > 0
-    ? card.examples.split(/\d+\.\s*/).filter(Boolean)
+  const examples = typeof card.Examples === "string" && card.Examples.trim().length > 0
+    ? card.Examples.split(/\d+\.\s*/).filter(Boolean)
     : [];
 
   return (
@@ -273,9 +273,9 @@ export function NewCardModal({
                   {chineseText}
                 </h3>
               )}
-              {card.translation && (
+              {card.Translation && (
                 <span className="text-xl text-muted-foreground">
-                  {card.translation}
+                  {card.Translation}
                 </span>
               )}
               <button
@@ -288,12 +288,12 @@ export function NewCardModal({
               </button>
             </div>
 
-            {card.explanation && (
+            {card.Meaning && (
               <div>
                 <p
                   className="text-foreground text-sm leading-relaxed whitespace-pre-line text-justify"
                   dangerouslySetInnerHTML={{
-                    __html: (card.explanation ?? "")
+                    __html: (card.Meaning ?? "")
                       .replace(/^### (.*)$/gm, "<strong>$1</strong>")
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                       .replace(/\*(.*?)\*/g, "<em>$1</em>"),
@@ -401,8 +401,8 @@ export function NewCardModal({
           <div className="mt-6 space-y-4">
             {characters.map((char) => {
               const related = allCards
-                .filter((c) => (c.chinese ?? "").includes(char) && c.id !== card.id)
-                .sort((a, b) => Number(a.id) - Number(b.id));
+                .filter((c) => (c.Chinese ?? "").includes(char) && c.Id !== card.Id)
+                .sort((a, b) => Number(a.Id) - Number(b.Id));
 
               if (related.length === 0) return null;
 
@@ -417,10 +417,10 @@ export function NewCardModal({
                     Cards containing "{char}"
                     {(() => {
                       const matchingCard = allCards.find(
-                        (c) => c.chinese === char,
+                        (c) => c.Chinese === char,
                       );
-                      return matchingCard?.translation
-                        ? `: ${matchingCard.translation}`
+                      return matchingCard?.Translation
+                        ? `: ${matchingCard.Translation}`
                         : "";
                     })()}
                   </h4>
@@ -440,11 +440,11 @@ export function NewCardModal({
                     <div className="flex gap-3 overflow-hidden flex-1">
                       {visibleCards.map((relatedCard) => {
                         // compute layout url per related card (so they each use the right HSK layout)
-                        const relatedLayoutUrl = getLayoutImageUrl(relatedCard.hsklevel ?? 1);
+                        const relatedLayoutUrl = getLayoutImageUrl(relatedCard.HSK ?? 1);
                         return (
                           // again cast to any to avoid TS errors if Card prop types not updated yet
                           <Card
-                            key={relatedCard.id}
+                            key={relatedCard.Id}
                             card={relatedCard as any}
                             onClick={() => onCardChange && onCardChange(relatedCard)}
                             {...({ layoutUrl: relatedLayoutUrl } as any)}

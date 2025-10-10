@@ -45,7 +45,7 @@ export default function Home() {
 
   // dedupe by id
   const uniqueCards = collection.reduce<ChineseWord[]>((acc, item) => {
-    if (!acc.find((c) => c.id === item.id)) acc.push(item);
+    if (!acc.find((c) => c.Id === item.Id)) acc.push(item);
     return acc;
   }, []);
 

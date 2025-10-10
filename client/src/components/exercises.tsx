@@ -14,12 +14,12 @@ interface ExerciseProps {
 
 export default function Exercises({ cards, onComplete }: ExerciseProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [exerciseType, setExerciseType] = useState<'pinyin' | 'translation'>('pinyin');
+  const [exerciseType, setExerciseType] = useState<'pinyin' | 'Translation'>('pinyin');
   const [userAnswer, setUserAnswer] = useState('');
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [exerciseScore, setExerciseScore] = useState<{pinyin: number, translation: number}>({pinyin: 0, translation: 0});
+  const [exerciseScore, setExerciseScore] = useState<{pinyin: number, Translation: number}>({pinyin: 0, Translation: 0});
 
   // Handle edge cases with useEffect to avoid render-time side effects
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
 
   const currentCard = cards[currentCardIndex];
   const isLastCard = currentCardIndex === cards.length - 1;
-  const isLastExerciseType = exerciseType === 'translation';
+  const isLastExerciseType = exerciseType === 'Translation';
 
   // Guard against invalid card index
   if (!currentCard) {
@@ -50,9 +50,9 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
 
   // Generate wrong choices for multiple choice - memoized to prevent regeneration
   const choices = useMemo(() => {
-    if (exerciseType !== 'translation') return [];
+    if (exerciseType !== 'Translation') return [];
     
-    const correctAnswer = currentCard.translation;
+    const correctAnswer = currentCard.Translation;
     const choices = [correctAnswer];
     const otherCards = cards.filter(card => card.id !== currentCard.id);
     
@@ -61,8 +61,8 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
     while (choices.length < 3 && availableCards.length > 0) {
       const randomIndex = Math.floor(Math.random() * availableCards.length);
       const randomCard = availableCards[randomIndex];
-      if (!choices.includes(randomCard.translation)) {
-        choices.push(randomCard.translation);
+      if (!choices.includes(randomCard.Translation)) {
+        choices.push(randomCard.Translation);
       }
       availableCards.splice(randomIndex, 1);
     }
@@ -99,9 +99,9 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
     };
     
     // Use card ID as seed for consistent but properly shuffled order
-    const shuffleSeed = `${currentCard.id}-translation`;
+    const shuffleSeed = `${currentCard.id}-Translation`;
     return seededShuffle(choices, shuffleSeed);
-  }, [currentCard.id, currentCard.translation, exerciseType, cards]);
+  }, [currentCard.id, currentCard.Translation, exerciseType, cards]);
 
   // Helper function to normalize pinyin for comparison
   const normalizePinyin = (pinyin: string): string => {
@@ -125,10 +125,10 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
     
     if (exerciseType === 'pinyin') {
       const normalizedAnswer = normalizePinyin(userAnswer);
-      const normalizedPinyin = normalizePinyin(currentCard.pinyin);
+      const normalizedPinyin = normalizePinyin(currentCard.Pinyin);
       correct = normalizedAnswer === normalizedPinyin;
     } else {
-      correct = selectedChoice === currentCard.translation;
+      correct = selectedChoice === currentCard.Translation;
     }
 
     setIsCorrect(correct);
@@ -148,8 +148,8 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
     setSelectedChoice(null);
 
     if (exerciseType === 'pinyin') {
-      // Move to translation exercise for the same card
-      setExerciseType('translation');
+      // Move to Translation exercise for the same card
+      setExerciseType('Translation');
     } else {
       // Move to next card with pinyin exercise
       if (isLastCard) {
@@ -161,7 +161,7 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
     }
   };
 
-  const progress = ((currentCardIndex * 2 + (exerciseType === 'translation' ? 1 : 0)) / (cards.length * 2)) * 100;
+  const progress = ((currentCardIndex * 2 + (exerciseType === 'Translation' ? 1 : 0)) / (cards.length * 2)) * 100;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -208,8 +208,8 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
 
               {/* Card Display */}
               <div className="text-center mb-8">
-                <div className="text-6xl md:text-8xl font-chinese mb-4">
-                  {currentCard.chinese}
+                <div className="text-6xl md:text-8xl font-Chinese mb-4">
+                  {currentCard.Chinese}
                 </div>
                 <div className="text-lg text-muted-foreground">
                   HSK Level {currentCard.hsklevel}
@@ -236,7 +236,7 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
               ) : (
                 <ExerciseResult 
                   isCorrect={isCorrect}
-                  correctAnswer={exerciseType === 'pinyin' ? currentCard.pinyin : currentCard.translation}
+                  correctAnswer={exerciseType === 'pinyin' ? currentCard.Pinyin : currentCard.Translation}
                   userAnswer={exerciseType === 'pinyin' ? userAnswer : selectedChoice || ''}
                   onNext={nextExercise}
                   isLastExercise={isLastCard && isLastExerciseType}
@@ -251,7 +251,7 @@ export default function Exercises({ cards, onComplete }: ExerciseProps) {
           <div className="text-sm font-semibold mb-1">Score</div>
           <div className="flex gap-4 text-xs">
             <span>Pinyin: {exerciseScore.pinyin}/{cards.length}</span>
-            <span>Translation: {exerciseScore.translation}/{cards.length}</span>
+            <span>Translation: {exerciseScore.Translation}/{cards.length}</span>
           </div>
         </div>
       </div>
@@ -311,7 +311,7 @@ function TranslationExercise({ choices, selectedChoice, setSelectedChoice, onSub
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-xl font-semibold mb-2">Choose the Translation</h3>
-        <p className="text-muted-foreground">Select the correct English translation</p>
+        <p className="text-muted-foreground">Select the correct English Translation</p>
       </div>
       
       <div className="space-y-3">
@@ -334,7 +334,7 @@ function TranslationExercise({ choices, selectedChoice, setSelectedChoice, onSub
         disabled={!selectedChoice}
         className="w-full"
         size="lg"
-        data-testid="button-submit-translation"
+        data-testid="button-submit-Translation"
       >
         Submit Answer
       </Button>
