@@ -1,14 +1,15 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { SUPABASE_URL_LOCAL, SUPABASE_ANON_KEY_LOCAL, API_BASE_LOCAL } from "../config";
 
 /**
  * Environment — use the Vite env names you provIded
  */
 export const SUPABASE_URL =
-  (import.meta as any).env?.VITE_SUPABASE_URL ?? ""; // your Render server origin for database
+  (import.meta as any).env?.VITE_SUPABASE_URL ?? SUPABASE_URL_LOCAL ?? ""; // your Render server origin for database
 export const SUPABASE_ANON_KEY =
-  (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? "";
+  (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? SUPABASE_ANON_KEY_LOCAL ?? "";
 export const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE_URL ?? ""; // your Render server origin for images
+  (import.meta as any).env?.VITE_API_BASE_URL ?? API_BASE_LOCAL ?? ""; // your Render server origin for images
 
 let _supabase: SupabaseClient | null = null;
 

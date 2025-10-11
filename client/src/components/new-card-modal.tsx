@@ -327,7 +327,7 @@ export function NewCardModal({
                           >
                             🔊
                           </button>
-                          <button
+                          {/* <button
                             onClick={() =>
                               listenChinese(example, (result, correct) => {
                                 updateExampleState(index, { userSaid: result, isCorrect: correct });
@@ -337,7 +337,7 @@ export function NewCardModal({
                             data-testid={`listen-example-${index}`}
                           >
                             🎤
-                          </button>
+                          </button>*/}
                           <button
                             onClick={async () => {
                               const result = await translateChineseToEnglish(example);
@@ -381,13 +381,13 @@ export function NewCardModal({
           <div className="relative flex-shrink-0">
             {/* Pass layoutUrl to CardVisual so overlay comes from render server */}
             {/* `as any` used here so this remains non-breaking if CardVisual's props haven't been typed yet */}
-            <CardVisual {...({ card, size: "lg" } as any)} />
+            <CardVisual {...({ card, size: "xl" } as any)} />
 
             <button
               onClick={handleDislike}
               className="absolute bottom-2 right-2 w-12 h-12 flex items-center justify-center 
                          rounded-full bg-destructive hover:bg-destructive/90 
-                         text-destructive-foreground shadow-lg transition-colors"
+                         text-destructive-foreground shadow-lg transition-colors "
               data-testid="dislike-button"
             >
               <ThumbsDown className="w-6 h-6" />

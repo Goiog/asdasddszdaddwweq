@@ -17,7 +17,7 @@ interface PackOpeningProps {
 
 export const PACK_CONFIGS: Record<string, PackConfig> = {
   hsk1: {
-    count: 6,
+    count: 5,
     hskLevel: "1",
     title: "HSK Level 1 Pack",
     description: "500 most basic Chinese words"
@@ -138,15 +138,62 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   }, [collectionUnique]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // helper: pick N random unique items from array
-  function pickRandom<T>(arr: T[], n: number) {
-    const out: T[] = [];
+    // helper: weighted sample WITHOUT replacement
+  // arr: array of items
+  // n: number of items to pick
+  // weightAccessor: (item) => number
+  function weightedSampleWithoutReplacement<T>(arr: T[], n: number, weightAccessor: (item: T) => number) {
     const copy = arr.slice();
-    while (out.length < n && copy.length > 0) {
-      const i = Math.floor(Math.random() * copy.length);
-      out.push(...copy.splice(i, 1));
+    const out: T[] = [];
+
+    // Safety: if n >= array size, return shuffled copy (preserve order randomness)
+    if (n >= copy.length) {
+      // simple shuffle
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy.slice(0, n);
     }
+
+    for (let k = 0; k < n; k++) {
+      // compute total weight
+      let total = 0;
+      const weights: number[] = copy.map((item) => {
+        let w = Number(weightAccessor(item) ?? 0);
+        if (!isFinite(w) || w <= 0) w = 0; // allow zeros (we'll handle)
+        return w;
+      });
+
+      // if all weights are zero, fall back to uniform weights
+      const sumWeights = weights.reduce((s, x) => s + x, 0);
+      if (sumWeights <= 0) {
+        // uniform random pick
+        const idx = Math.floor(Math.random() * copy.length);
+        out.push(copy.splice(idx, 1)[0]);
+        continue;
+      }
+
+      total = sumWeights;
+      // pick a random threshold in [0, total)
+      let r = Math.random() * total;
+      let chosenIndex = -1;
+      let cum = 0;
+      for (let i = 0; i < weights.length; i++) {
+        cum += weights[i];
+        if (r < cum) {
+          chosenIndex = i;
+          break;
+        }
+      }
+      // safety fallback
+      if (chosenIndex === -1) chosenIndex = copy.length - 1;
+      out.push(copy.splice(chosenIndex, 1)[0]);
+    }
+
     return out;
   }
+
 
   /**
    * Core DB logic:
@@ -191,7 +238,18 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
     // if there are fewer candidates than requested, fall back to sampling from all rows
     const pool = candidates.length >= config.count ? candidates : rows;
 
-    const sampled = pickRandom(pool, config.count);
+        // Decide which field to use as weight: prefer Frequency/Probability/weight/prob
+    const sampled = weightedSampleWithoutReplacement(pool, config.count, (r: any) => {
+      // try common weight fields (numbers, or numeric strings)
+      const cand = r.Frequency ?? r.frequency ?? r.Probability ?? r.probability ?? r.prob ?? r.weight ?? r.Weight ?? null;
+      // If it's null/undefined, return 1 (uniform)
+      if (cand === null || cand === undefined) return 1;
+      const num = Number(cand);
+      // if not a number or <=0, treat as 0 (so it will be less likely)
+      if (!isFinite(num)) return 0;
+      return num;
+    });
+
 
     // Map sampled rows to the expected ChineseWord shape (best-effort)
     const normalized: ChineseWord[] = sampled.map((r: any) => {
@@ -573,7 +631,7 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
                         <Card
                           card={cards[currentCardIndex]}
                           showAnimation
-                          size="lg" // 👈 this is how you call it
+                          size="l" // 👈 this is how you call it
                           onClick={() => onCardClick(cards[currentCardIndex])}
                         />
                       </motion.div>
