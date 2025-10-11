@@ -47,12 +47,6 @@ export type ChineseWord = {
   isNew?: boolean;
 };
 
-export function getLayoutImageUrl(hskLevel: number): string {
-  const base = API_BASE || "";
-  return `${base}/Images/Layout_HSK${hskLevel}.png`;
-}
-
-
 /** Map a DB row (Supabase) to our frontend ChineseWord shape */
 function mapDbRowToChineseWord(r: any): ChineseWord {
   if (!r) return null as any;

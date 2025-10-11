@@ -5,7 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import pinyin from "pinyin";
 import Card, { CardVisual } from "./card";
 import type { ChineseWord } from "@/lib/card-utils";
-import { getLayoutImageUrl } from "@/lib/card-utils"; // <-- new import
+import { getImageUrl273, getImageUrl455 } from "@/lib/card-utils"; // <-- new import
 
 
 // Import the existing functions we need
@@ -148,7 +148,7 @@ export function NewCardModal({
 
   // Ensure we always work with strings
   const chineseText = typeof card.Chinese === "string" ? card.Chinese : "";
-  const layoutUrl = getLayoutImageUrl(card.HSK ?? 1);
+  //const layoutUrl = getImageUrl455(card.HSK);
 
   // Navigation functions - clone array before sorting to avoid mutating parent state
   const sortedCards = [...allCards].sort((a, b) => Number(a.Id) - Number(b.Id));
@@ -381,7 +381,7 @@ export function NewCardModal({
           <div className="relative flex-shrink-0">
             {/* Pass layoutUrl to CardVisual so overlay comes from render server */}
             {/* `as any` used here so this remains non-breaking if CardVisual's props haven't been typed yet */}
-            <CardVisual {...({ card, size: "lg", layoutUrl } as any)} />
+            <CardVisual {...({ card, size: "lg" } as any)} />
 
             <button
               onClick={handleDislike}
@@ -440,14 +440,14 @@ export function NewCardModal({
                     <div className="flex gap-3 overflow-hidden flex-1">
                       {visibleCards.map((relatedCard) => {
                         // compute layout url per related card (so they each use the right HSK layout)
-                        const relatedLayoutUrl = getLayoutImageUrl(relatedCard.HSK ?? 1);
+                        //const relatedLayoutUrl = getImageUrl273(relatedCard.HSK ?? 1);
                         return (
                           // again cast to any to avoid TS errors if Card prop types not updated yet
                           <Card
                             key={relatedCard.Id}
                             card={relatedCard as any}
                             onClick={() => onCardChange && onCardChange(relatedCard)}
-                            {...({ layoutUrl: relatedLayoutUrl } as any)}
+                            //{...({ layoutUrl: relatedLayoutUrl } as any)}
                           />
                         );
                       })}

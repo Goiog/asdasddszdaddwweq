@@ -1,6 +1,5 @@
 import { 
-  getImageUrl, 
-  getLayoutImageUrl,  // 👈 new helper imported from card-utils
+  getImageUrl,
   type ChineseWord
 } from "@/lib/card-utils";
 import { useState } from "react";
@@ -17,9 +16,10 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
   const [imageError, setImageError] = useState(false);
 
   const dimensions = size === "lg" ? "h-[32rem]" : "h-72";
-
+  const imageSize = size === "lg" ? 455 : 273;
+  const imageUrl = getImageUrl(card, imageSize);
   // 👇 Dynamic layout image URL fetched from render server
-  const layoutUrl = getLayoutImageUrl(card.HSK ?? 1);
+  //const layoutUrl = getLayoutImageUrl(card.HSK ?? 1);
 
   return (
     <div
@@ -31,7 +31,7 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
       <div className="absolute inset-0">
         {!imageError ? (
           <img
-            src={getImageUrl(card)}
+            src={imageUrl}
             alt=""
             className="w-full h-full object-cover"
             onError={() => setImageError(true)}
@@ -41,14 +41,14 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
         )}
       </div>
 
-      {/* Overlay Image from render server */}
+      {/* Overlay Image from render server
       <div className="absolute inset-0 pointer-events-none">
         <img
           src={layoutUrl}
           alt="Overlay"
           className="w-full h-full object-cover"
         />
-      </div>
+      </div> */}
 
       {/* Card Content Overlay */}
       <div
