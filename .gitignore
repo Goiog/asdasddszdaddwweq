@@ -4,3 +4,4 @@ dist
 vite.config.ts.*
 *.tar.gz
 .git.backup.*
+.env*
