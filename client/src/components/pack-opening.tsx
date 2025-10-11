@@ -570,9 +570,10 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
                           stiffness: 100
                         }}
                       >
-                        <Card 
-                          card={cards[currentCardIndex]} 
+                        <Card
+                          card={cards[currentCardIndex]}
                           showAnimation
+                          size="lg" // 👈 this is how you call it
                           onClick={() => onCardClick(cards[currentCardIndex])}
                         />
                       </motion.div>

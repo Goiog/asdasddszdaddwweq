@@ -16,7 +16,7 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
   const [imageError, setImageError] = useState(false);
 
   const dimensions = size === "lg" ? "h-[32rem]" : "h-72";
-  const imageSize = size === "lg" ? 512 : 256;
+  const imageSize = size === "sm" ? 256 : 512;
   const imageUrl = getImageUrl(card, imageSize);
   // 👇 Dynamic layout image URL fetched from render server
   //const layoutUrl = getLayoutImageUrl(card.HSK ?? 1);
@@ -91,13 +91,16 @@ interface CardProps {
   onClick?: () => void;
   showAnimation?: boolean;
   className?: string;
-}
+  size?: "sm" | "lg"; // 👈 Add this line
+};
 
+// Component
 export default function Card({
   card,
   onClick,
   showAnimation = false,
   className = "",
+  size = "sm", // 👈 Default value if not provided
 }: CardProps) {
   const cardClasses = `
     relative card-3d bg-card border border-border rounded-xl p-4 shadow-lg hover:shadow-xl 
@@ -127,7 +130,8 @@ export default function Card({
         </span>
       )}
 
-      <CardVisual card={card} size="sm" />
+      {/* 👇 Use the size prop here */}
+      <CardVisual card={card} size={size} />
     </div>
   );
 }
