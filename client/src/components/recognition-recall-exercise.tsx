@@ -74,18 +74,18 @@ export default function RecognitionRecallExercise({
 
   // Generate translation choices from cards with similar themes/HSK levels
   const generateTranslationChoices = (targetCard: ChineseWord, allCards: ChineseWord[]): string[] => {
-    const choices = [targetCard.translation];
+    const choices = [targetCard.Translation];
     
     // First try to find cards with same HSK level
     let candidateCards = allCards.filter(card => 
-      card.id !== targetCard.id && card.hsklevel === targetCard.hsklevel
+      card.id !== targetCard.id && card.HSK === targetCard.HSK
     );
     
     // If not enough, expand to adjacent HSK levels
     if (candidateCards.length < 2) {
       candidateCards = allCards.filter(card => 
         card.id !== targetCard.id && 
-        Math.abs(Number(card.hsklevel || 1) - Number(targetCard.hsklevel || 1)) <= 1
+        Math.abs(Number(card.HSK || 1) - Number(targetCard.HSK || 1)) <= 1
       );
     }
     
@@ -98,8 +98,8 @@ export default function RecognitionRecallExercise({
     const shuffledCandidates = shuffleArray(candidateCards);
     for (const card of shuffledCandidates) {
       if (choices.length >= 3) break;
-      if (!choices.includes(card.translation)) {
-        choices.push(card.translation);
+      if (!choices.includes(card.Translation)) {
+        choices.push(card.Translation);
       }
     }
     
@@ -115,12 +115,12 @@ export default function RecognitionRecallExercise({
   // Generate character choices with shared pinyin letters
   const generateCharacterChoices = (targetCard: ChineseWord, allCards: ChineseWord[]): ChineseWord[] => {
     const choices = [targetCard];
-    const targetPinyin = targetCard.pinyin.toLowerCase().replace(/\d/g, '');
+    const targetPinyin = targetCard.Pinyin.toLowerCase().replace(/\d/g, '');
     
     // Find cards with pinyin that shares at least 1 letter
     const similarPinyinCards = allCards.filter(card => {
       if (card.id === targetCard.id) return false;
-      const cardPinyin = card.pinyin.toLowerCase().replace(/\d/g, '');
+      const cardPinyin = card.Pinyin.toLowerCase().replace(/\d/g, '');
       
       // Check if they share at least one letter
       for (let char of cardPinyin) {
@@ -174,11 +174,11 @@ export default function RecognitionRecallExercise({
     switch (currentExercise.type) {
       case 'pinyin_fill':
         const normalizedAnswer = normalizePinyin(Array.isArray(userAnswer) ? userAnswer.join("") : userAnswer);
-        const normalizedPinyin = normalizePinyin(currentExercise.card.pinyin);
+        const normalizedPinyin = normalizePinyin(currentExercise.card.Pinyin);
         correct = normalizedAnswer === normalizedPinyin;
         break;
       case 'translation_choice':
-        correct = selectedChoice === currentExercise.card.translation;
+        correct = selectedChoice === currentExercise.card.Translation;
         break;
       case 'character_choice':
         correct = selectedChoice === currentExercise.card.id;
@@ -359,19 +359,19 @@ export default function RecognitionRecallExercise({
                   {currentExercise.type === 'character_choice' ? (
                     <>
                       <div className="text-2xl font-mono">
-                        {pinyinNumericToAccents(currentExercise.card.pinyin)}
+                        {pinyinNumericToAccents(currentExercise.card.Pinyin)}
                       </div>
                       <div className="text-lg text-muted-foreground">
-                        HSK Level {currentExercise.card.hsklevel}
+                        HSK Level {currentExercise.card.HSK}
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="text-6xl md:text-8xl font-chinese">
-                        {currentExercise.card.chinese}
+                        {currentExercise.card.Chinese}
                       </div>
                       <div className="text-lg text-muted-foreground">
-                        HSK Level {currentExercise.card.hsklevel}
+                        HSK Level {currentExercise.card.HSK}
                       </div>
                     </>
                   )}
@@ -677,7 +677,7 @@ function CharacterChoiceExercise({
             className="w-full text-left justify-start h-auto p-4"
           >
             <span className="font-semibold mr-3">{String.fromCharCode(65 + index)}.</span>
-            <span className="text-base">{choice.chinese}</span>
+            <span className="text-base">{choice.Chinese}</span>
           </Button>
         ))}
       </div>
@@ -714,11 +714,11 @@ function ExerciseResult({
   const getCorrectAnswer = () => {
     switch (currentExercise.type) {
       case 'pinyin_fill':
-        return currentExercise.card.pinyin;
+        return currentExercise.card.Pinyin;
       case 'translation_choice':
-        return currentExercise.card.translation;
+        return currentExercise.card.Translation;
       case 'character_choice':
-        return currentExercise.card.chinese;
+        return currentExercise.card.Chinese;
       default:
         return '';
     }

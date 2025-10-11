@@ -34,7 +34,7 @@ export type ChineseWord = {
   id: string;
   Id?: number; // original numeric Id if you need it
   Chinese?: string | null;
-  Pinyin?: string;
+  Pinyin?: string ;
   Translation?: string;
   HSK?: string | null;
   Frequency?: number | null;
