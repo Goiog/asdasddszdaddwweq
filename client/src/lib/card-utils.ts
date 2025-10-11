@@ -157,13 +157,13 @@ export async function getRandomWords(count = 10): Promise<ChineseWord[]> {
  *
  * If your DB stores full image URLs in `Image`, callers can prefer that field.
  */
-export function getImageUrl(card: { Id: string; Image?: string | null }): string {
-  // If API_BASE is empty we'll fall back to a relative path (useful for same-origin setups)
+export function getImageUrl(
+  card: { Id: string; Image?: string | null },
+  size: number = 273 // default to small
+): string {
   const base = API_BASE || "";
-  // keep same format you already use
-  return `${base}/Images/${card.Id}.webp`;
+  return `${base}/Images/${card.Id}_${size}.webp`;
 }
-
 // -----------------------------
 // Local collection helpers (localStorage-backed)
 // -----------------------------

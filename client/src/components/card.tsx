@@ -23,7 +23,7 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
 
   return (
     <div
-      className={`aspect-[720/1024] relative ${
+      className={`aspect-[768/1024] relative ${
         size === "lg" ? "w-[20rem] border-0" : "w-[12rem] border-0"
       } overflow-hidden rounded-lg`}
     >
