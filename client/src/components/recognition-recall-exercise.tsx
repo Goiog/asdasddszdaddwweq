@@ -383,7 +383,7 @@ export default function RecognitionRecallExercise({
                     <>
                       {currentExercise.type === 'pinyin_fill' && (
                         <PinyinFillExercise 
-                          correctPinyin={currentExercise.card.pinyin}
+                          correctPinyin={currentExercise.card.Pinyin}
                           userAnswer={userAnswer}
                           setUserAnswer={setUserAnswer}
                           onSubmit={checkAnswer}

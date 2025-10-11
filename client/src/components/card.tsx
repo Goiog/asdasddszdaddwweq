@@ -16,7 +16,7 @@ export function CardVisual({ card, size = "sm" }: CardVisualProps) {
   const [imageError, setImageError] = useState(false);
 
   const dimensions = size === "lg" ? "h-[32rem]" : "h-72";
-  const imageSize = size === "lg" ? 455 : 273;
+  const imageSize = size === "lg" ? 512 : 256;
   const imageUrl = getImageUrl(card, imageSize);
   // 👇 Dynamic layout image URL fetched from render server
   //const layoutUrl = getLayoutImageUrl(card.HSK ?? 1);
