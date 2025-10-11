@@ -94,7 +94,7 @@ export const TABLE_NAME = "ChineseDatabase";
 /** Fetch all words from Supabase table. */
 export async function fetchAllWords(): Promise<ChineseWord[]> {
   const supabase = createSupabaseClient();
-  const res = await supabase.from(TABLE_NAME).select("*");
+  const res = await supabase.from(TABLE_NAME).select("*").limit(1000);
   const rows = await handleResult<any[]>(res);
   return (rows || []).map(mapDbRowToChineseWord).filter(Boolean);
 }
@@ -107,6 +107,7 @@ export async function fetchWordById(Id: string): Promise<ChineseWord | null> {
   const res = await supabase
     .from(TABLE_NAME)
     .select("*")
+    .limit(1000)
     .eq("Id", Number.isFinite(numeric) ? numeric : Id)
     .limit(1);
   const rows = await handleResult<any[]>(res);
@@ -115,7 +116,7 @@ export async function fetchWordById(Id: string): Promise<ChineseWord | null> {
 }
 
 /** Search words by q (searches Chinese, Pinyin, Translation). Limit default 50. */
-export async function searchWords(q: string, limit = 50): Promise<ChineseWord[]> {
+export async function searchWords(q: string, limit = 1000): Promise<ChineseWord[]> {
   if (!q || q.trim() === "") return [];
   const supabase = createSupabaseClient();
   // Basic full-text-ish search using ilike on key columns (safe for RLS+anon)
@@ -123,6 +124,7 @@ export async function searchWords(q: string, limit = 50): Promise<ChineseWord[]>
   const { data, error } = await supabase
     .from(TABLE_NAME)
     .select("*")
+    .limit(1000)
     .or(
       `Chinese.ilike.${like},Pinyin.ilike.${like},Translation.ilike.${like}`
     )
