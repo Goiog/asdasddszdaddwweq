@@ -5,14 +5,15 @@ import Card from "@/components/card";
 import { NewCardModal as CardModal } from "@/components/new-card-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Grid, List, Search, ChevronDown, ChevronUp, Lock} from "lucide-react";
+import{ ProgressHSKPanel} from "@/components/ProgressHSKPanel"; // adjust path
+import { Grid, Hash, Palette, ArrowUpDown , LockOpen , Lock} from "lucide-react";
 import {
   loadCollectionFromLocalStorage,
   fetchAllWords,
   ChineseWord
 } from "@/lib/card-utils";
 import { SearchBar } from "@/components/SearchBar";
-
+import { Checkbox } from "@/components/ui/checkbox";
 // Improved Collection page:
 // - clearer responsive layout inspired by GitHub (clean header, dense cards on wide screens)
 // - accessible progress bar, aria labels, keyboard-friendly controls
@@ -74,6 +75,8 @@ export default function CollectionPage(): JSX.Element {
   const [selectedCard, setSelectedCard] = useState<ChineseWord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchMode, setSearchMode] = useState<"hanzi" | "pinyin" | "translation">("hanzi")
+  const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(false);
+
 
   // Debounce search (300ms)
   useEffect(() => {
@@ -143,10 +146,9 @@ export default function CollectionPage(): JSX.Element {
 
   // Filter + sort logic
   const filteredCards = useMemo(() => {
-    let filtered = combinedCards.filter(({ word }) => {
+    let filtered = combinedCards.filter(({ word, unlocked }) => {
       if (!word) return false;
 
-      // Debounced search match
       if (debouncedQuery) {
         const q = debouncedQuery.toLowerCase();
         if (searchMode === "hanzi") {
@@ -157,9 +159,10 @@ export default function CollectionPage(): JSX.Element {
           if (!(word.Translation ?? "").toLowerCase().includes(q)) return false;
         }
       }
-      if (hskFilter && hskFilter !== "all" && String(word.HSK ?? "Unknown") !== hskFilter) return false;
 
+      if (hskFilter && hskFilter !== "all" && String(word.HSK ?? "Unknown") !== hskFilter) return false;
       if (themeFilter && themeFilter !== "all" && (word.Theme ?? "") !== themeFilter) return false;
+      if (showOnlyUnlocked && !unlocked) return false;
 
       return true;
     });
@@ -167,7 +170,6 @@ export default function CollectionPage(): JSX.Element {
     filtered.sort((a, b) => {
       const wa = a.word;
       const wb = b.word;
-
       switch (sortBy) {
         case "pinyin":
           return (wa.Pinyin ?? "").localeCompare(wb.Pinyin ?? "");
@@ -184,7 +186,15 @@ export default function CollectionPage(): JSX.Element {
     });
 
     return filtered;
-  }, [combinedCards, debouncedQuery, hskFilter, themeFilter, sortBy]);
+  }, [
+    combinedCards,
+    debouncedQuery,
+    hskFilter,
+    themeFilter,
+    sortBy,
+    showOnlyUnlocked,   // ✅ ADD THIS
+    searchMode          // (optional but recommended)
+  ]);
 
   const handleCardClick = (card: ChineseWord, unlocked: boolean) => {
     if (!unlocked) return;
@@ -201,63 +211,49 @@ export default function CollectionPage(): JSX.Element {
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
-          <div>
+          {/*<div>
             <h1 className="text-3xl font-bold leading-tight">My Collection</h1>
             <p className="text-sm text-muted-foreground mt-1">Browse, filter and review your Chinese vocabulary cards.</p>
-          </div>
-          <div className="w-full lg:w-auto flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2">
+          </div>*/}
+          <div className="w-full flex items-center gap-3">
+           {/*  <div className="hidden sm:flex items-center gap-2">
               <Button variant="ghost" size="sm" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} title="Grid view">
                 <Grid className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} title="List view">
                 <List className="h-4 w-4" />
               </Button>
-            </div>
+            </div>*/}
             
-            <div className="ml-auto sm:ml-0 w-full sm:w-auto">
-              <div className="text-xs text-muted-foreground">Progress</div>
-              <div className="mt-1 w-64 max-w-full">
-                <div className="w-full bg-muted rounded-full h-2" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressPercentage)} aria-label="Collection progress">
-                  <div className="h-2 rounded-full bg-gradient-to-r from-primary to-accent transition-all" style={{ width: `${progressPercentage}%` }} />
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">{uniqueCards.length} / {allWords.length} cards ({progressPercentage.toFixed(1)}%)</div>
-              </div>
-            </div>
-            {/* Footer stats */}
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-6 gap-4">
-            {Object.keys(stats.totalByHSK).map((level) => (
-              <div key={level} className="bg-card border border-border rounded-lg p-4 text-center">
-                <div className="text-lg font-bold">{stats.ownedByHSK[level] || 0} / {stats.totalByHSK[level]}</div>
-                <div className="text-xs text-muted-foreground">HSK {level}</div>
-              </div>
-            ))}
-          </div>
-          
+            <ProgressHSKPanel
+              progressPercentage={progressPercentage}
+              uniqueCards={uniqueCards}
+              allWords={allWords}
+              stats={stats}
+            />
+
           </div>
         </div>
 
         {/* Filters */}
-        <section className="bg-card border border-border rounded-xl p-5 mb-8">
+        <section className="bg-card border border-border rounded-2xl p-4 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-center">
+            {/* Search */}
             <div className="col-span-1 md:col-span-2">
-              <label htmlFor="search" className="sr-only">Search cards</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <SearchBar
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  searchMode={searchMode}
-                  setSearchMode={setSearchMode}
-                />
-              </div>
+              <SearchBar
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                searchMode={searchMode}
+                setSearchMode={setSearchMode}
+              />
             </div>
 
-            <div className="hidden md:block">
-              <label className="text-xs text-muted-foreground mb-1 block">HSK</label>
+            {/* HSK Filter */}
+            <div className="flex items-center gap-2">
+              <Hash className="h-4 w-4 text-muted-foreground" />
               <Select value={hskFilter} onValueChange={(v: string) => setHskFilter(v as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All HSK" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="HSK" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All HSK Levels</SelectItem>
@@ -271,11 +267,12 @@ export default function CollectionPage(): JSX.Element {
               </Select>
             </div>
 
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Theme</label>
+            {/* Theme Filter */}
+            <div className="flex items-center gap-2">
+              <Palette className="h-4 w-4 text-muted-foreground" />
               <Select value={themeFilter} onValueChange={(v: string) => setThemeFilter(v as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All themes" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Theme" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Themes</SelectItem>
@@ -286,11 +283,12 @@ export default function CollectionPage(): JSX.Element {
               </Select>
             </div>
 
-            <div className="lg:col-span-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Sort</label>
+            {/* Sort Filter */}
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={(v: string) => setSortBy(v)}>
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="id">By ID</SelectItem>
@@ -299,6 +297,21 @@ export default function CollectionPage(): JSX.Element {
                   <SelectItem value="recent">Recently Added</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            {/* Unlocked Only Checkbox */}
+            <div className="flex items-center gap-2">
+              <LockOpen className="h-4 w-4 text-muted-foreground" />
+              <Checkbox
+                id="unlockedOnly"
+                checked={showOnlyUnlocked}
+                onCheckedChange={(checked) => setShowOnlyUnlocked(Boolean(checked))}
+              />
+              <label
+                htmlFor="unlockedOnly"
+                className="text-sm text-muted-foreground select-none cursor-pointer"
+              >
+                Unlocked only
+              </label>
             </div>
           </div>
         </section>

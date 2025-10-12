@@ -2,6 +2,7 @@
 import React from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Search } from "lucide-react"
 
 interface SearchBarProps {
   searchQuery: string
@@ -16,29 +17,49 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   searchMode,
   setSearchMode,
 }) => {
+  const modes = [
+    { key: "hanzi", label: "Hanzi" },
+    { key: "pinyin", label: "Pinyin" },
+    { key: "translation", label: "English" },
+  ] as const
+
   return (
-    <div className="space-y-2">
-      {/* Buttons */}
-      <div className="flex gap-2 mb-1">
-        {(["hanzi", "pinyin", "translation"] as const).map((mode) => (
+    <div className="w-full max-w-2xl mx-auto flex items-center rounded-2xl border bg-background shadow-sm overflow-hidden">
+      {/* Search Icon */}
+      <div className="pl-3 pr-1 text-muted-foreground">
+        <Search className="h-4 w-4" />
+      </div>
+
+      
+
+      {/* Mode Selector */}
+      <div className="flex border-l divide-x">
+        {modes.map((mode) => (
           <Button
-            key={mode}
+            key={mode.key}
+            variant={searchMode === mode.key ? "default" : "ghost"}
             size="sm"
-            variant={searchMode === mode ? "default" : "outline"}
-            onClick={() => setSearchMode(mode)}
+            className={`rounded-none font-medium text-sm transition-colors ${
+              searchMode === mode.key
+                ? ""
+                : "hover:bg-muted hover:text-foreground"
+            }`}
+            onClick={() => setSearchMode(mode.key)}
           >
-            {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            {mode.label}
           </Button>
         ))}
       </div>
 
-      {/* Search input */}
+      {/* Search Input */}
       <Input
         id="search"
-        placeholder={`Search by ${searchMode}`}
+        placeholder={`Search by ${
+          modes.find((m) => m.key === searchMode)?.label.toLowerCase() || ""
+        }`}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="pl-10"
+        className="border-none shadow-none focus-visible:ring-0 flex-1 text-sm"
       />
     </div>
   )
