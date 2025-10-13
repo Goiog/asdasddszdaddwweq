@@ -86,6 +86,7 @@ export default {
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
         chinese: ['NSimSun', 'Noto Serif SC', 'serif'],
+        Winchinese: ['Microsoft YaHei'],
       },
       keyframes: {
         "accordion-down": {

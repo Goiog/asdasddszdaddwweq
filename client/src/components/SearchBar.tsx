@@ -39,7 +39,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             key={mode.key}
             variant={searchMode === mode.key ? "default" : "ghost"}
             size="sm"
-            className={`rounded-none font-medium text-sm transition-colors ${
+            className={` font-medium text-sm transition-colors ${
               searchMode === mode.key
                 ? ""
                 : "hover:bg-muted hover:text-foreground"

@@ -95,49 +95,120 @@ const LevelTile: React.FC<{
   );
 };
 
-/** Horizontal stacked distribution showing relative totals per level */
+
+/** Horizontal stacked distribution showing fraction of the ENTIRE set (allWords)
+    contributed by owned cards per level. */
 const DistributionStrip: React.FC<{
-  totalsByLevel: { level: string; total: number; colorClass: string }[];
-  overallTotal: number;
-}> = ({ totalsByLevel, overallTotal }) => {
-  if (overallTotal === 0) {
+  totalsByLevel: { level: string; total: number; owned: number; colorClass: string }[];
+  totalWords: number;
+}> = ({ totalsByLevel, totalWords }) => {
+  if (totalWords === 0) {
     return (
-      <div className="mt-3 text-xs text-muted-foreground">No distribution available — no words in collection.</div>
+      <div className="mt-3 text-xs text-muted-foreground">
+        No distribution available — no words in collection.
+      </div>
     );
   }
 
   return (
     <div className="mt-3">
       <div className="w-full h-4 bg-muted rounded-lg overflow-hidden flex" aria-hidden>
-        {totalsByLevel.map(({ level, total, colorClass }) => {
-          const pct = Math.round((total / overallTotal) * 100);
-          const widthStyle = { width: `${pct}%` };
+        {totalsByLevel.map(({ level, total, owned, colorClass }) => {
+          // percentage of the ENTIRE set that is owned in this level
+          const pctRaw = (owned / totalWords) * 100;
+          const pctDisplay = Math.round(pctRaw);
+
+          // fractional width so small slices are represented (not rounded to 0%)
+          const widthStyle = { width: `${pctRaw}%` };
+
+          // ensure gradient direction utility is present so colorClass renders
+          const segmentClass = `h-full bg-gradient-to-r ${colorClass} flex items-center justify-center`;
+
+          // only show inline label when there is room
+          const showLabel = pctRaw >= 6;
+
+          // tooltip shows owned/total and percent-of-allWords
+          const tooltip = `HSK ${level}: ${owned}/${total} owned — ${pctDisplay}% of all words`;
+
           return (
             <div
               key={level}
-              title={`HSK ${level}: ${total} (${pct}%)`}
-              className={`h-full ${colorClass}`}
+              title={tooltip}
+              className={segmentClass}
               style={widthStyle}
               aria-hidden
-            />
+            >
+              {showLabel ? (
+                <span className="text-[10px] font-medium text-white select-none" aria-hidden>
+                  {pctDisplay}%
+                </span>
+              ) : null}
+            </div>
           );
         })}
       </div>
-
-      {/* <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <div>Distribution across levels</div>
-        <div className="hidden sm:flex items-center gap-2">
-          {totalsByLevel.slice(0, 6).map(({ level, total }) => (
-            <div key={level} className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-muted inline-block" aria-hidden />
-              <span className="text-xs">{`HSK ${level} (${total})`}</span>
-            </div>
-          ))}
-        </div>
-      </div> */}
     </div>
   );
 };
+
+/** Compact block that shows Owned / Total percentage for a level */
+const HSKBlock: React.FC<{
+  level: string;
+  owned: number;
+  total: number;
+  colorClass: string;
+}> = ({ level, owned, total, colorClass }) => {
+  const pct = total > 0 ? Math.round((owned / total) * 100) : 0;
+  const widthPct = `${clamp(pct)}%`;
+  const empty = total === 0;
+
+  return (
+    <div
+      className="bg-card border border-border rounded-xl p-3 flex flex-col justify-between hover:shadow-sm transition-transform hover:scale-[1.01]"
+      title={empty ? `HSK ${level}: no cards` : `HSK ${level}: ${owned}/${total} (${pct}%)`}
+      aria-label={`HSK ${level} progress: ${owned} of ${total} cards (${pct} percent)`}
+      role="group"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-lg font-extrabold leading-none flex items-baseline gap-2">
+            <span className="tabular-nums">{pct}%</span>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">HSK {level}</div>
+        </div>
+
+        <div className="flex flex-col items-end gap-2">
+          <div className="text-sm font-medium tabular-nums" aria-hidden>
+            {owned}/{total}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <div className="flex items-center gap-3">
+          {/* left color accent */}
+          <div className={`w-1.5 h-6 rounded-full bg-gradient-to-b ${colorClass}`} aria-hidden />
+
+          <div
+            className="flex-1 h-3 rounded-full bg-muted overflow-hidden"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+            aria-label={`HSK ${level} progress`}
+          >
+            <div
+              className={`h-full bg-gradient-to-r ${colorClass} transition-all duration-300 ease-out`}
+              style={{ width: empty ? "0%" : widthPct }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 export const ProgressHSKPanel: React.FC<Props> = ({
   progressPercentage,
@@ -156,87 +227,53 @@ export const ProgressHSKPanel: React.FC<Props> = ({
       .map(String);
   }, [stats.totalByHSK]);
 
+  const overallOwned = useMemo(
+  () => levels.reduce((sum, lvl) => sum + (stats.ownedByHSK?.[lvl] ?? 0), 0),
+  [levels, stats.ownedByHSK]
+  );
+
   const overallPct = clamp(Number.isFinite(progressPercentage) ? progressPercentage : 0);
 
   // compute totals for distribution strip
   const totalsByLevel = useMemo(() => {
     const arr = levels.map((lvl) => {
       const total = stats.totalByHSK?.[lvl] ?? 0;
+      const owned = stats.ownedByHSK?.[lvl] ?? 0;
       const colorClass = HSK_COLOR_MAP[lvl] ?? HSK_COLOR_MAP.default;
-      return { level: lvl, total, colorClass };
+      return { level: lvl, total, owned, colorClass };
     });
-    // sort descending so big segments render left-to-right more meaningful
-    return arr.sort((a, b) => b.total - a.total);
-  }, [levels, stats.totalByHSK]);
+    // keep stable ordering (by level numeric)
+    return arr.sort((a, b) => Number(a.level) - Number(b.level));
+  }, [levels, stats.totalByHSK, stats.ownedByHSK]);
 
-  const overallTotal = useMemo(
-    () => totalsByLevel.reduce((s, t) => s + t.total, 0),
-    [totalsByLevel]
-  );
+  // fall back to sum of totals if allWords isn't available
+  const totalWords = useMemo(() => {
+    if (Array.isArray(allWords) && allWords.length > 0) return allWords.length;
+    return totalsByLevel.reduce((s, t) => s + t.total, 0);
+  }, [allWords, totalsByLevel]);
+
 
   return (
     <div className="w-full">
       <div className="bg-card border border-border rounded-2xl p-6">
-        {/*<div className="grid grid-cols-1 lg:grid-cols-[0.3fr_0.7fr] gap-6"></div> */}
-          {/* Left: Overall Progress 
-          <div className="flex flex-col justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground font-medium tracking-wide">Overall Progress</div>
-
-              <div className="mt-4">
-                <div
-                  className="w-full bg-muted rounded-full h-4 overflow-hidden"
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(overallPct)}
-                  aria-label="Collection progress"
-                >
-                  <div
-                    className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500 ease-out"
-                    style={{ width: `${clamp(overallPct)}%` }}
-                  />
-                </div>
-
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold">
-                    <span className="tabular-nums">{uniqueCards.length}</span> /{" "}
-                    <span className="tabular-nums">{allWords.length}</span>{" "}
-                    <span className="text-xs font-normal text-muted-foreground">cards</span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="px-3 py-1 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border border-border text-sm font-medium tabular-nums"
-                      aria-hidden
-                    >
-                      {overallPct.toFixed(1)}%
-                    </div>
-                    <div className="hidden md:inline-flex items-center text-xs text-muted-foreground">
-                      {Math.round(overallPct)} / 100
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">Progress is calculated from learned cards in your collection.</div>
-              </div>
-            </div>
-
-            <div className="mt-4 text-xs text-muted-foreground">
-              {allWords.length === 0 ? <span>No words in the collection yet.</span> : null}
-            </div>
-          </div>*/}
-
-          {/* Right: HSK Breakdown + Distribution */}
+          {/* Top: HSK Breakdown + Distribution */}
           <div>
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground font-medium tracking-wide">HSK Breakdown</div>
-              <div className="text-xs text-muted-foreground">By level (tiles)</div>
-            </div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700 font-medium tracking-wide">Owned Cards</div>
+                  <div className="flex items-baseline gap-1">
+                    <div className="text-sm font-semibold tabular-nums">
+                      {overallOwned} / {totalWords}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {totalWords > 0 ? ((overallOwned / totalWords) * 100).toFixed(0) : "0"}%
+                    </div>
+                  </div>
+                </div>
 
             {/* Distribution strip sits above the tiles to communicate mass distribution */}
-            <DistributionStrip totalsByLevel={totalsByLevel} overallTotal={overallTotal} />
+            <DistributionStrip totalsByLevel={totalsByLevel} totalWords={totalWords} />
 
-            {/* Grid of tiles */}
+            {/* Bottom Grid: compact HSK blocks showing owned/total percentage */}
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
               {levels.map((level) => {
                 const owned = stats.ownedByHSK?.[level] ?? 0;
@@ -244,7 +281,7 @@ export const ProgressHSKPanel: React.FC<Props> = ({
                 const colorClass = HSK_COLOR_MAP[level] ?? HSK_COLOR_MAP.default;
 
                 return (
-                  <LevelTile
+                  <HSKBlock
                     key={level}
                     level={level}
                     owned={owned}

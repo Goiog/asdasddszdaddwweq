@@ -5,8 +5,8 @@ import Card from "@/components/card";
 import { NewCardModal as CardModal } from "@/components/new-card-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import{ ProgressHSKPanel} from "@/components/ProgressHSKPanel"; // adjust path
-import { Grid, Hash, Palette, ArrowUpDown , LockOpen , Lock} from "lucide-react";
+import { ProgressHSKPanel } from "@/components/ProgressHSKPanel"; // adjust path
+import { Grid, Hash, Palette, ArrowUpDown, LockOpen, Lock, Trophy } from "lucide-react";
 import {
   loadCollectionFromLocalStorage,
   fetchAllWords,
@@ -14,13 +14,11 @@ import {
 } from "@/lib/card-utils";
 import { SearchBar } from "@/components/SearchBar";
 import { Checkbox } from "@/components/ui/checkbox";
-// Improved Collection page:
-// - clearer responsive layout inspired by GitHub (clean header, dense cards on wide screens)
-// - accessible progress bar, aria labels, keyboard-friendly controls
-// - debounced search to reduce re-renders
-// - skeleton while loading
-// - consistent normalization and types
+import PaginationBar from "@/components/PaginationBar";
+import { ProgressRing , ProgressToggleButton} from "@/components/ProgressRingButton";
 
+
+// normalizeRowToChineseWord(...) unchanged (kept as in your original file)
 function normalizeRowToChineseWord(raw: any): ChineseWord {
   if (!raw || typeof raw !== "object") return {
     id: "",
@@ -76,13 +74,23 @@ export default function CollectionPage(): JSX.Element {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchMode, setSearchMode] = useState<"hanzi" | "pinyin" | "translation">("hanzi")
   const [showOnlyUnlocked, setShowOnlyUnlocked] = useState(false);
-
+  const [isProgressOpen, setIsProgressOpen] = useState<boolean>(false);
+  
+  // Pagination state (new)
+  const PAGE_SIZE = 12;
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
   // Debounce search (300ms)
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
     return () => clearTimeout(t);
   }, [searchQuery]);
+
+  // Reset page to 1 when filters or search changes so user doesn't land on an empty page
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, hskFilter, themeFilter, sortBy, showOnlyUnlocked, searchMode]);
 
   // Fetch all words from remote source and normalize
   const { data: allWordsRaw = [], isLoading } = useQuery<any[]>({
@@ -192,9 +200,21 @@ export default function CollectionPage(): JSX.Element {
     hskFilter,
     themeFilter,
     sortBy,
-    showOnlyUnlocked,   // ✅ ADD THIS
-    searchMode          // (optional but recommended)
+    showOnlyUnlocked,
+    searchMode
   ]);
+
+  // Pagination calculations (new)
+  const totalItems = filteredCards.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  // ensure current page is within bounds
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const startIndex = (page - 1) * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+  const visibleCards = filteredCards.slice(startIndex, endIndex);
 
   const handleCardClick = (card: ChineseWord, unlocked: boolean) => {
     if (!unlocked) return;
@@ -205,39 +225,15 @@ export default function CollectionPage(): JSX.Element {
   const progressPercentage = allWords.length > 0 ? (uniqueCards.length / allWords.length) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50">
       <Navigation cardCount={uniqueCards.length} totalCards={allWords.length} />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
-          {/*<div>
-            <h1 className="text-3xl font-bold leading-tight">My Collection</h1>
-            <p className="text-sm text-muted-foreground mt-1">Browse, filter and review your Chinese vocabulary cards.</p>
-          </div>*/}
-          <div className="w-full flex items-center gap-3">
-           {/*  <div className="hidden sm:flex items-center gap-2">
-              <Button variant="ghost" size="sm" aria-pressed={viewMode === "grid"} onClick={() => setViewMode("grid")} title="Grid view">
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" aria-pressed={viewMode === "list"} onClick={() => setViewMode("list")} title="List view">
-                <List className="h-4 w-4" />
-              </Button>
-            </div>*/}
-            
-            <ProgressHSKPanel
-              progressPercentage={progressPercentage}
-              uniqueCards={uniqueCards}
-              allWords={allWords}
-              stats={stats}
-            />
-
-          </div>
-        </div>
-
         {/* Filters */}
-        <section className="bg-card border border-border rounded-2xl p-4 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-center">
+        <section className="bg-card border border-border rounded-2xl p-4 mb-8 relative">
+          
+
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3 items-center">
             {/* Search */}
             <div className="col-span-1 md:col-span-2">
               <SearchBar
@@ -277,7 +273,9 @@ export default function CollectionPage(): JSX.Element {
                 <SelectContent>
                   <SelectItem value="all">All Themes</SelectItem>
                   {allThemes.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -298,9 +296,10 @@ export default function CollectionPage(): JSX.Element {
                 </SelectContent>
               </Select>
             </div>
-            {/* Unlocked Only Checkbox */}
+
+            {/* Unlocked Only Checkbox (kept in its place) */}
             <div className="flex items-center gap-2">
-              <LockOpen className="h-4 w-4 text-muted-foreground" />
+              {/*<LockOpen className="h-4 w-4 text-muted-foreground" />
               <Checkbox
                 id="unlockedOnly"
                 checked={showOnlyUnlocked}
@@ -311,10 +310,45 @@ export default function CollectionPage(): JSX.Element {
                 className="text-sm text-muted-foreground select-none cursor-pointer"
               >
                 Unlocked only
-              </label>
+              </label> */}
             </div>
+             {/* Trophy toggle button — stays on the right */}
+
+            <ProgressToggleButton
+              isOpen={isProgressOpen}
+              onToggle={() => setIsProgressOpen((s) => !s)}
+              progressPercentage={progressPercentage}
+              uniqueCards={uniqueCards}
+              allWords={allWords}
+              stats={stats}
+            />
           </div>
         </section>
+
+        {/* Progression Bar */}
+        {/* Note: margin-bottom is reduced when folded to bring cards grid closer */}
+        <div
+          className={
+            "flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 " +
+            (isProgressOpen ? "mb-8" : "mb-2")
+          }
+        >
+          <div
+            id="progression-panel"
+            className={
+              "w-full flex items-center gap-3 overflow-hidden transition-all duration-300 " +
+              (isProgressOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0")
+            }
+            aria-hidden={!isProgressOpen}
+          >
+            <ProgressHSKPanel
+              progressPercentage={progressPercentage}
+              uniqueCards={uniqueCards}
+              allWords={allWords}
+              stats={stats}
+            />
+          </div>
+        </div>
 
         {/* Loading skeleton */}
         {isLoading && (
@@ -338,17 +372,25 @@ export default function CollectionPage(): JSX.Element {
           </div>
         )}
 
-        {/* Cards grid / list */}
+        {/* Cards grid / list with pagination */}
         {!isLoading && filteredCards.length > 0 && (
           <section aria-live="polite">
+            {/* Top pagination bar */}
+            <PaginationBar
+              page={page}
+              setPage={setPage}
+              totalItems={totalItems}
+              pageSize={pageSize}
+            />
+
             <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 justify-items-center" : "space-y-4"}>
-              {filteredCards.map(({ word, unlocked }) => (
+              {visibleCards.map(({ word, unlocked }) => (
                 <div key={word.id} className="relative">
-                  <Card card={word} size={viewMode === "grid" ? "l" : "m"} onClick={() => handleCardClick(word, unlocked)} className={viewMode === "list" ? "flex-row w-full" : ""} />
+                  <Card card={word} size={viewMode === "grid" ? "l" : "m"} onClick={() => handleCardClick(word, unlocked)} className={`${viewMode === "list" ? "flex-row w-full" : ""} ${!unlocked ? "filter: blur" : ""}`} />
 
                   {!unlocked && (
                     <div className="absolute inset-0 bg-black/80 rounded-xl flex items-center justify-center">
-                      <Lock className="w-8 h-8 text-white opacity-80" />
+                      <Lock className="w-8 h-8 text-white opacity-80 " />
                     </div>
                   )}
                 </div>
@@ -356,8 +398,6 @@ export default function CollectionPage(): JSX.Element {
             </div>
           </section>
         )}
-
-        
 
       </main>
 

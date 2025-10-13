@@ -5,33 +5,16 @@ import { apiRequest } from "@/lib/queryClient";
 import pinyin from "pinyin";
 import Card, { CardVisual } from "./card";
 import type { ChineseWord } from "@/lib/card-utils";
-import { getImageUrl273, getImageUrl455 } from "@/lib/card-utils"; // <-- new import
 
 
 // Import the existing functions we need
-function speakChinese(text: string) {
+export function speakChinese(text: string) {
   if (!text) return;
   if ("speechSynthesis" in window) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "zh-CN";
     window.speechSynthesis.speak(utterance);
   }
-}
-
-function normalizeChinese(text: string) {
-  return (text ?? "")
-    .replace(/\s+/g, "") // remove spaces
-    .replace(/[，。！？,.!?]/g, "") // remove punctuation
-    .replace(/第一/g, "第1")
-    .replace(/第二/g, "第2")
-    .replace(/第三/g, "第3")
-    .replace(/第四/g, "第4")
-    .replace(/第五/g, "第5")
-    .replace(/第六/g, "第6")
-    .replace(/第七/g, "第7")
-    .replace(/第八/g, "第8")
-    .replace(/第九/g, "第9")
-    .replace(/第十/g, "第10");
 }
 
 function listenChinese(
@@ -53,9 +36,7 @@ function listenChinese(
 
   recognition.onresult = function (event: any) {
     const userSaid = event.results[0][0].transcript;
-    const normalizedExpected = normalizeChinese(expected);
-    const normalizedUserSaid = normalizeChinese(userSaid);
-    const isCorrect = normalizedExpected === normalizedUserSaid;
+    const isCorrect = expected === userSaid;
     onResult(userSaid, isCorrect);
   };
 
@@ -67,7 +48,7 @@ function listenChinese(
   recognition.start();
 }
 
-function renderPinyinWithCharacters(text: string) {
+export function renderPinyinWithCharacters(text: string) {
   const safeText = text ?? "";
   const result = pinyin(safeText, {
     style: pinyin.STYLE_TONE,
@@ -351,7 +332,7 @@ export function NewCardModal({
                         </div>
                       </div>
 
-                      {/* Feedback */}
+                      {/* Feedback
                       {exampleState.userSaid && (
                         <div className="mt-2 text-lg text-foreground flex items-center gap-2">
                           <span>
@@ -363,7 +344,7 @@ export function NewCardModal({
                             <span className="text-red-600">❌</span>
                           )}
                         </div>
-                      )}
+                      )}*/}
 
                       {/* Translation */}
                       {exampleState.translation && (

@@ -8,6 +8,8 @@ import {
   X,
   Search,
   User,
+  Settings,
+  Bell
 } from "lucide-react";
 
 interface NavigationProps {
@@ -42,39 +44,32 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
-          {/* Left: Logo */}
-          <div className="flex items-center gap-3 min-w-0">
-            <Link href="/" className="flex items-center gap-2 no-underline">
-              <div className="rounded-md p-1 bg-gray-100 border border-gray-200">
-                <span className="text-lg">🃏</span>
-              </div>
-              <div className="truncate">
-                <h1 className="text-sm font-semibold text-gray-900 leading-5">Chinese Cards</h1>
-                <p className="text-xs text-gray-500 -mt-0.5">Study • Collect • Train</p>
-              </div>
-            </Link>
-          </div>
+          {/* Left: Logo + Nav */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 min-w-0">
+              <Link href="/" className="flex items-center gap-2 no-underline">
+                <div className="rounded-md p-1 bg-gray-100 border border-gray-200">
+                  <span className="text-lg"></span>
+                </div>
+                <div className="truncate">
+                  <h1 className="text-sm font-semibold text-gray-900 leading-5">Chinese Cards</h1>
+                  <p className="text-xs text-gray-500 -mt-0.5">Study • Collect • Train</p>
+                </div>
+              </Link>
+            </div>
 
-          {/* Center / Desktop nav */}
-          <nav className="hidden md:flex md:items-center md:space-x-2">
-            <NavLink href="/" icon={Gift}>Pack Opening</NavLink>
-            <NavLink href="/collection" icon={Layers}>Collection</NavLink>
-            <NavLink href="/training" icon={Brain}>Training</NavLink>
-          </nav>
+            {/* Desktop nav (now sits to the left, next to logo) */}
+            <nav className="hidden md:flex items-center space-x-2">
+              <NavLink href="/" icon={Gift}>Pack Opening</NavLink>
+              <NavLink href="/collection" icon={Layers}>Collection</NavLink>
+              <NavLink href="/training" icon={Brain}>Training</NavLink>
+            </nav>
+          </div>
 
           {/* Right: Search, counter, profile, mobile button */}
           <div className="flex items-center gap-3">
-            {/* Search (desktop) */}
-            <div className="hidden md:flex items-center border border-gray-200 rounded-md px-2 py-1 bg-white shadow-sm">
-              <Search className="h-4 w-4 text-gray-400" />
-              <input
-                aria-label="Search cards"
-                placeholder="Search cards, decks..."
-                className="ml-2 w-44 text-sm placeholder-gray-400 bg-transparent focus:outline-none"
-              />
-            </div>
 
             {/* Card counter */}
             <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-gray-50 border border-gray-200">
@@ -82,7 +77,22 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
               <div className="text-sm font-semibold" data-testid="card-count">{cardCount}</div>
               <div className="text-sm text-gray-500">/ {totalCards}</div>
             </div>
-
+            {/* Notifications / Actions */}
+            <button
+              className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-md border border-gray-200 hover:shadow-sm focus:outline-none focus-visible:ring focus-visible:ring-offset-2"
+              aria-label="Open settings menu"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="text-sm">Notifications</span>
+            </button>
+            {/* Settings / Actions */}
+            <button
+              className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-md border border-gray-200 hover:shadow-sm focus:outline-none focus-visible:ring focus-visible:ring-offset-2"
+              aria-label="Open settings menu"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="text-sm">Settings</span>
+            </button>
             {/* Profile / Actions */}
             <button
               className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-md border border-gray-200 hover:shadow-sm focus:outline-none focus-visible:ring focus-visible:ring-offset-2"

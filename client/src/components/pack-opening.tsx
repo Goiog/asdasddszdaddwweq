@@ -6,8 +6,9 @@ import Card from "./card";
 import { NewCardModal as CardModal } from "./new-card-modal";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import RecognitionRecallExercise from "./recognition-recall-exercise";
-
+import CardWithDetails from "./CardWithDetails"; // adjust path if needed
 /**
  * UI/UX refreshed Pack Opening component
  * - Visual style inspired by GitHub: neutral tones, clean borders, compact spacing
@@ -215,7 +216,7 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top navigation bar - GitHub inspired */}
+      {/* Top navigation bar - GitHub inspired 
       <header className="border-b border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -239,9 +240,9 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
             <div className="w-8 h-8 rounded-full bg-slate-200" aria-hidden />
           </div>
         </div>
-      </header>
+      </header>*/}
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar (filters) */}
           <aside className="lg:col-span-1 bg-white border border-slate-200 rounded-md p-4 sticky top-6 h-fit">
@@ -312,26 +313,45 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-slate-600">Card {index + 1} of {cards.length}</div>
+        <div className="text-sm text-slate-600">
+          Card {index + 1} of {cards.length}
+        </div>
         <div className="flex gap-2">
-          <button onClick={() => setIndex(i => Math.max(0, i - 1))} disabled={index === 0} className="px-2 py-1 rounded border">Prev</button>
-          <button onClick={() => setIndex(i => Math.min(cards.length - 1, i + 1))} disabled={index === cards.length - 1} className="px-2 py-1 rounded border">Next</button>
+          <button
+            onClick={() => setIndex(i => Math.max(0, i - 1))}
+            disabled={index === 0}
+            className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeft className="w-5 h-5 text-slate-700" />
+          </button>
+
+          <button
+            onClick={() => setIndex(i => Math.min(cards.length - 1, i + 1))}
+            disabled={index === cards.length - 1}
+            className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronRight className="w-5 h-5 text-slate-700" />
+          </button>
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[320px]">
-        <AnimatePresence mode="wait">
-          <motion.div key={index} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-md">
-            <Card card={cards[index]} showAnimation size="l" onClick={() => onCardClick(cards[index])} />
-          </motion.div>
-        </AnimatePresence>
-      </div>
+      <CardWithDetails
+        cards={cards}
+        index={index}
+        onCardClick={onCardClick}
+      />
 
       <div className="mt-6 flex justify-between items-center">
-        <div className="text-xs text-slate-500">Tip: view all cards and then start the short exercise to add them to your collection.</div>
+        <div className="text-xs text-slate-500">
+          Tip: view all cards and then start the short exercise to add them to your collection.
+        </div>
         <div className="flex gap-2">
-          <Button onClick={onStartExercises} className="px-3 py-1">Start Exercises</Button>
-          <Button onClick={onContinue} variant={"ghost"} className="px-3 py-1">Close</Button>
+          <Button onClick={onStartExercises} className="px-3 py-1">
+            Start Exercises
+          </Button>
+          <Button onClick={onContinue} variant={"ghost"} className="px-3 py-1">
+            Close
+          </Button>
         </div>
       </div>
     </div>
