@@ -2,21 +2,12 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChineseWord } from "@/lib/card-utils";
 import { createSupabaseClient, TABLE_NAME } from "@/lib/card-utils";
-import Card from "./card";
-import { NewCardModal as CardModal } from "./new-card-modal";
+import Card from "@/components/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import RecognitionRecallExercise from "./recognition-recall-exercise";
 import CardWithDetails from "./CardWithDetails"; // adjust path if needed
-/**
- * UI/UX refreshed Pack Opening component
- * - Visual style inspired by GitHub: neutral tones, clean borders, compact spacing
- * - Responsive: sidebar -> top filter on small screens
- * - Accessibility: improved focus states and aria labels
- * - Smaller, purposeful animations, reduced visual noise
- * - Kept original behaviour and DB/fetch logic intact
- */
 
 interface PackOpeningProps {
   onPackOpened: (cards: (ChineseWord & { unlocked?: boolean; isNew?: boolean })[]) => void;
@@ -172,20 +163,28 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   };
 
   const handleStartExercises = () => { setShowCards(false); setShowExercises(true); };
-  const handleExercisesComplete = (cards: ChineseWord[]) => {
-    const out = cards.map((c: any) => ({ ...c, unlocked: isUnlocked(c), isNew: true }));
-    setShowExercises(false); onPackOpened(out);
-    toast({ title: "Exercises Complete", description: "Cards added to your collection." });
+  const handleAddToCollection = (cards: ChineseWord[]) => {
+    const out = cards.map((c: any) => ({
+      ...c,
+      unlocked: isUnlocked(c),
+      isNew: true,
+    }));
+
+    onPackOpened(out);
+    toast({
+      title: "Exercises Complete",
+      description: "Cards added to your collection.",
+    });
   };
 
   const handleCardClick = (card: ChineseWord) => { setSelectedCard(card); setIsModalOpen(true); };
   const handleCloseModal = () => { setIsModalOpen(false); setSelectedCard(null); };
 
-  if (showExercises) {
-    return (
-      <RecognitionRecallExercise cards={revealedCards} onComplete={handleExercisesComplete} onBack={() => { setShowExercises(false); setShowCards(true); }} />
-    );
-  }
+  // if (showExercises) {
+  //   return (
+  //     <RecognitionRecallExercise cards={revealedCards} onComplete={handleExercisesComplete} onBack={() => { setShowExercises(false); setShowCards(true); }} />
+  //   );
+  // }
 
   // --- Minimal presentational subcomponents ---
   function IconOctocat() {
@@ -216,32 +215,6 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Top navigation bar - GitHub inspired 
-      <header className="border-b border-slate-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-900 text-white rounded-md p-2 inline-flex items-center justify-center"><IconOctocat /></div>
-            <div>
-              <div className="text-sm font-semibold">LexiCards</div>
-              <div className="text-xs text-slate-500">Open packs · HSK practice</div>
-            </div>
-          </div>
-
-          <div className="flex-1 max-w-md">
-            <div className="hidden sm:block">
-              <input aria-label="Search packs" placeholder="Search packs or words..." className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
-              <button onClick={() => setViewMode(v => v === 'cards' ? 'list' : 'cards')} className="px-2 py-1 rounded-md border border-transparent hover:bg-slate-100">{viewMode === 'cards' ? 'Grid' : 'List'}</button>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-200" aria-hidden />
-          </div>
-        </div>
-      </header>*/}
-
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar (filters) */}
@@ -269,33 +242,65 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
               </div>
             </div>
 
-            {/* Packs grid/list */}
+            {/* Inside the <section className="lg:col-span-3"> … */}
             {!isOpening ? (
+              // existing pack grid
               <div className={`${viewMode === 'cards' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2'}`}>
                 {Object.entries(PACK_CONFIGS)
                   .filter(([k]) => (activeFilter ? activeFilter === k : true))
                   .map(([packType, config]) => (
-                    <PackCardClean key={packType} packType={packType} title={config.title} description={`${config.count} cards`} details={`HSK ${config.hskLevel}`} onClick={() => openPack(packType)} />
+                    <PackCardClean
+                      key={packType}
+                      packType={packType}
+                      title={config.title}
+                      description={`${config.count} cards`}
+                      details={`HSK ${config.hskLevel}`}
+                      onClick={() => openPack(packType)}
+                    />
                   ))}
               </div>
             ) : (
               <div className="bg-white border border-slate-200 rounded-md p-6">
-                <PackOpeningAnimation progress={openingProgress} cards={revealedCards} showCards={showCards} onContinue={resetPackOpening} onCardClick={handleCardClick} onStartExercises={handleStartExercises} />
+                {!showExercises ? (
+                  <PackOpeningAnimation
+                    progress={openingProgress}
+                    cards={revealedCards}
+                    showCards={showCards}
+                    onContinue={resetPackOpening}
+                    onCardClick={handleCardClick}
+                    onStartExercises={() => setShowExercises(true)}
+                  />
+                ) : (
+                  <RecognitionRecallExercise
+                    cards={revealedCards}
+                    onAddToCollection={handleAddToCollection}   // ✅ renamed
+                    onBack={() => setShowExercises(false)}        // ✅ stays the same
+                  />
+                )}
+
               </div>
             )}
+
           </section>
         </div>
       </main>
 
-      <CardModal card={selectedCard} isOpen={isModalOpen} onClose={handleCloseModal} onCardChange={(newCard)=> setSelectedCard(newCard)} allCards={revealedCards} />
+      {/* <CardModal card={selectedCard} isOpen={isModalOpen} onClose={handleCloseModal} onCardChange={(newCard)=> setSelectedCard(newCard)} allCards={revealedCards} /> */}
     </div>
   );
 }
 
-// --- Updated PackOpeningAnimation (smaller + accessible) ---
+// --- Updated PackOpeningAnimation (supports "show all after last chevron") ---
 function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardClick, onStartExercises }: PackOpeningAnimationProps) {
   const [index, setIndex] = useState(0);
-  useEffect(() => { if (showCards && cards.length) setIndex(0); }, [showCards, cards.length]);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    if (showCards && cards.length) {
+      setIndex(0);
+      setShowAll(false);
+    }
+  }, [showCards, cards.length]);
 
   if (!showCards) {
     return (
@@ -310,6 +315,51 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
 
   if (cards.length === 0) return <div className="text-sm text-slate-500">No cards found.</div>;
 
+  // When showAll is true render all cards at once (grid)
+  if (showAll) {
+    return (
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-sm text-slate-600">All cards</div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowAll(false); setIndex(0); }}
+              className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 transition-all"
+            >
+              <ChevronLeft className="w-5 h-5 text-slate-700" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 justify-items-center">
+          {cards.map((card, i) => (
+            <motion.div
+              key={card.id ?? i}
+              layout
+              whileHover={{ y: -4 }}
+              className="bg-white rounded-sm cursor-pointer"
+              onClick={() => {
+                // find the index of the clicked card
+                const i = cards.findIndex(c => c.id === card.id);
+                if (i !== -1) {
+                  setIndex(i);      // show that card
+                  setShowAll(false); // exit "show all" mode
+                }
+              }}
+            >
+              <Card card={card} size="m" />
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex justify-center items-center">
+          <Button onClick={onStartExercises}>Start Exercises</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal single-card view with chevrons
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -326,9 +376,15 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
           </button>
 
           <button
-            onClick={() => setIndex(i => Math.min(cards.length - 1, i + 1))}
-            disabled={index === cards.length - 1}
-            className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            onClick={() => {
+              if (index < cards.length - 1) {
+                setIndex(i => Math.min(cards.length - 1, i + 1));
+              } else {
+                // If already at the last card, pressing the right chevron shows all cards together
+                setShowAll(true);
+              }
+            }}
+            className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 transition-all"
           >
             <ChevronRight className="w-5 h-5 text-slate-700" />
           </button>
@@ -340,20 +396,6 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
         index={index}
         onCardClick={onCardClick}
       />
-
-      <div className="mt-6 flex justify-between items-center">
-        <div className="text-xs text-slate-500">
-          Tip: view all cards and then start the short exercise to add them to your collection.
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={onStartExercises} className="px-3 py-1">
-            Start Exercises
-          </Button>
-          <Button onClick={onContinue} variant={"ghost"} className="px-3 py-1">
-            Close
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

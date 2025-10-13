@@ -18,10 +18,10 @@ export function CardVisual({ card, size = "m" }: CardVisualProps) {
 
   const sizeStyles = {
     xs: { width: "w-[8rem]", text: "text-[0.3em]", chinese: "text-[0.9em]", id: "text-[0.32em]", imageSize: 358 },
-    s:  { width: "w-[10rem]", text: "text-[0.38em]", chinese: "text-[1.1em]", id: "text-[0.4em]", imageSize: 358 },
+    s:  { width: "w-[10rem]", text: "text-[0.38em]", chinese: "text-[1.1em]", id: "text-[0.4em]", imageSize: 256 },
     m:  { width: "w-[12rem]", text: "text-[0.45em]", chinese: "text-[1.3em]", id: "text-[0.48em]", imageSize: 512 },
     l:  { width: "w-[13.5rem]", text: "text-[0.51em]", chinese: "text-[1.49em]", id: "text-[0.54em]", imageSize: 512 },
-    xl: { width: "w-[20rem]", text: "text-[0.75em]", chinese: "text-[2.2em]", id: "text-[0.8em]", imageSize: 512 },
+    xl: { width: "w-[19rem]", text: "text-[0.75em]", chinese: "text-[2.2em]", id: "text-[0.8em]", imageSize: 512 },
   } as const;
 
   const style = sizeStyles[size] ?? sizeStyles.m; // fallback to 'm'

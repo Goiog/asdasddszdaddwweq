@@ -11,7 +11,7 @@ import { CheckCircle, XCircle, BookOpen, Target, Users } from "lucide-react";
 
 interface RecognitionRecallExerciseProps {
   cards: ChineseWord[];
-  onComplete: (trainedCards: ChineseWord[]) => void;
+  onAddToCollection: (trainedCards: ChineseWord[]) => void; // renamed
   onBack: () => void;
 }
 
@@ -24,7 +24,7 @@ type ExerciseType = 'pinyin_fill' | 'translation_choice' | 'character_choice';
 
 export default function RecognitionRecallExercise({ 
   cards, 
-  onComplete, 
+  onAddToCollection, 
   onBack 
 }: RecognitionRecallExerciseProps) {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -70,7 +70,11 @@ export default function RecognitionRecallExercise({
     }
   }, [cards]);
 
-
+  useEffect(() => {
+    if (showFinalResults) {
+      onAddToCollection(uniqueTrainedCards);
+    }
+  }, [showFinalResults]);
 
   // Generate translation choices from cards with similar themes/HSK levels
   const generateTranslationChoices = (targetCard: ChineseWord, allCards: ChineseWord[]): string[] => {
@@ -259,73 +263,76 @@ export default function RecognitionRecallExercise({
   const uniqueTrainedCards = Array.from(
     new Map(exercises.map(e => [e.card.id, e.card])).values()
   );
+  
+    // Automatically add cards to collection once final results appear
+  
+
   if (showFinalResults) {
-    return (
-      <div className="min-h-screen bg-background relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-green-900/20"></div>
-        
-        <div className="relative z-10 container mx-auto px-4 py-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
-          >
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-500 bg-clip-text text-transparent mb-4">
-              Exercise Complete!
-            </h2>
-            <p className="text-xl text-muted-foreground mb-2">
-              Final Score: {score} / {exercises.length}
-            </p>
-            <Badge variant="secondary" className="text-lg px-4 py-2">
-              {Math.round((score / exercises.length) * 100)}% Accuracy
-            </Badge>
-          </motion.div>
-
-          <div className="mb-8">
-            <h3 className="text-2xl font-semibold text-center mb-6">Cards Trained</h3> 
-            <div className="flex flex-wrap justify-center gap-5">
-              {uniqueTrainedCards.map((card, index) => (
-                <motion.div
-                  key={card.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card
-                    card={card}
-                    onClick={() => {}}
-                    className="transform hover:scale-105 transition-transform"
-                  />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-center space-x-4">
-            <Button variant="outline" onClick={onBack} size="lg">
-              Back to Training
-            </Button>
-            <Button onClick={() => onComplete(uniqueTrainedCards)} size="lg">
-              Continue Training
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Automatically trigger adding cards to collection once final results are shown
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-green-900/20"></div>
-      
-      <div className="relative z-10 container mx-auto px-4 py-8">
+    <div className="relative overflow-hidden rounded-xl p-6">
+      <div className="absolute top-0 left-0 right-0 bottom-0 h-full w-full pointer-events-none" />
+      <div className="relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h2 className="text-4xl font-bold text-gray-700 mb-4">
+            Exercise Complete!
+          </h2>
+          <p className="text-xl text-muted-foreground mb-2">
+            Final Score: {score} / {exercises.length}
+          </p>
+        </motion.div>
+
+        <div className="mb-8">
+          <h3 className="text-2xl font-semibold text-center mb-6">Cards Trained</h3>
+          <div className="flex flex-wrap justify-center gap-2">
+            {uniqueTrainedCards.map((card, index) => (
+              <motion.div
+                key={card.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card
+                  card={card}
+                  onClick={() => {}}
+                  className="transform hover:scale-105 transition-transform"
+                />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-center space-x-4">
+          <Button variant="outline" onClick={onBack} size="lg">
+            Back to Training
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+  return (
+    <div className="relative overflow-hidden rounded-xl p-6">
+      <div className="absolute inset-0 pointer-events-none" />
+        <div className="relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-500 bg-clip-text text-transparent mb-2">
-            Recognition & Recall Exercises
-          </h2>
-          <p className="text-muted-foreground">Test your Chinese character recognition skills!</p>
-          
+        {/* Score Display */}
+          <div className="text-m text-gray-600 font-medium mt-2">
+            <span className="text-green-600 font-semibold">{score}</span>
+            <span className="text-gray-400"> / </span>
+            <span className="text-blue-600">
+              {currentExerciseIndex + (showResult ? 1 : 0)}
+            </span>
+            <span className="ml-1">correct</span>
+          </div>
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-4">
             <div 
@@ -346,7 +353,7 @@ export default function RecognitionRecallExercise({
             exit={{ opacity: 0, y: -20 }}
             className="max-w-3xl mx-auto"
           >
-            <UICard className="relative p-8 shadow-2xl border-2 border-purple-500/30">
+            <UICard className="relative p-8 border-2 border-gray-500/30">
               {/* Top-left icon */}
               <div className="absolute top-4 left-4">
                 {getExerciseIcon(currentExercise.type)}
@@ -421,14 +428,6 @@ export default function RecognitionRecallExercise({
             </UICard>
           </motion.div>
         </AnimatePresence>
-
-        {/* Score Display */}
-        <div className="fixed bottom-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-4 shadow-lg">
-          <div className="text-sm font-semibold mb-1">Score</div>
-          <div className="text-xs">
-            {score} / {currentExerciseIndex + (showResult ? 1 : 0)} correct
-          </div>
-        </div>
       </div>
     </div>
   );
