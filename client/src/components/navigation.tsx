@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   Gift,
   Layers,
@@ -23,23 +23,34 @@ interface NavigationProps {
 // - Uses Tailwind utility classes (adjust tokens to your project's design system)
 
 export default function Navigation({ cardCount, totalCards }: NavigationProps) {
-  const [location] = useLocation();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isActive = (path: string) => location === path;
+  const isActive = (path: string) => location.pathname === path;
 
-  const NavLink = ({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon?: any; }) => (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus-visible:ring focus-visible:ring-offset-2` +
-        (isActive(href)
-          ? " bg-primary text-primary-foreground"
-          : " text-muted-foreground hover:bg-muted/80")}
-      aria-current={isActive(href) ? "page" : undefined}
+  const NavItem = ({
+    to,
+    children,
+    icon: Icon,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    icon?: React.ComponentType<any>;
+  }) => (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus-visible:ring focus-visible:ring-offset-2 ${
+          isActive
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-muted/80"
+        }`
+      }
+      aria-current={isActive(to) ? "page" : undefined}
     >
       {Icon ? <Icon className="h-4 w-4" /> : null}
       {children}
-    </Link>
+    </NavLink>
   );
 
   return (
@@ -49,60 +60,79 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/" className="flex items-center gap-2 no-underline">
+              <Link
+                to="/"
+                className="flex items-center gap-2 no-underline focus:outline-none"
+              >
                 <div className="rounded-md p-1 bg-gray-100 border border-gray-200">
                   <span className="text-lg"></span>
                 </div>
                 <div className="truncate">
-                  <h1 className="text-sm font-semibold text-gray-900 leading-5">Chinese Cards</h1>
-                  <p className="text-xs text-gray-500 -mt-0.5">Study • Collect • Train</p>
+                  <h1 className="text-sm font-semibold text-gray-900 leading-5">
+                    Chinese Cards
+                  </h1>
+                  <p className="text-xs text-gray-500 -mt-0.5">
+                    Study • Collect • Train
+                  </p>
                 </div>
               </Link>
             </div>
 
-            {/* Desktop nav (now sits to the left, next to logo) */}
+            {/* Desktop nav */}
             <nav className="hidden md:flex items-center space-x-2">
-              <NavLink href="/" icon={Gift}>Pack Opening</NavLink>
-              <NavLink href="/collection" icon={Layers}>Collection</NavLink>
-              <NavLink href="/training" icon={Brain}>Training</NavLink>
+              <NavItem to="/" icon={Gift}>
+                Pack Opening
+              </NavItem>
+              <NavItem to="/collection" icon={Layers}>
+                Collection
+              </NavItem>
+              <NavItem to="/training" icon={Brain}>
+                Training
+              </NavItem>
             </nav>
           </div>
 
-          {/* Right: Search, counter, profile, mobile button */}
+          {/* Right: Counter + Buttons */}
           <div className="flex items-center gap-3">
-
             {/* Card counter */}
             <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-gray-50 border border-gray-200">
               <span className="text-sm">🎴</span>
-              <div className="text-sm font-semibold" data-testid="card-count">{cardCount}</div>
+              <div
+                className="text-sm font-semibold"
+                data-testid="card-count"
+              >
+                {cardCount}
+              </div>
               <div className="text-sm text-gray-500">/ {totalCards}</div>
             </div>
-            {/* Notifications / Actions */}
+
+            {/* Actions */}
             <button
               className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-md border border-gray-200 hover:shadow-sm focus:outline-none focus-visible:ring focus-visible:ring-offset-2"
-              aria-label="Open settings menu"
+              aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
               <span className="text-sm">Notifications</span>
             </button>
-            {/* Settings / Actions */}
+
             <button
               className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-md border border-gray-200 hover:shadow-sm focus:outline-none focus-visible:ring focus-visible:ring-offset-2"
-              aria-label="Open settings menu"
+              aria-label="Settings"
             >
               <Settings className="h-4 w-4" />
               <span className="text-sm">Settings</span>
             </button>
-            {/* Profile / Actions */}
-            <button
+
+            <Link
+              to="/login"
               className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-md border border-gray-200 hover:shadow-sm focus:outline-none focus-visible:ring focus-visible:ring-offset-2"
-              aria-label="Open profile menu"
+              aria-label="Account"
             >
               <User className="h-4 w-4" />
               <span className="text-sm">Account</span>
-            </button>
+            </Link>
 
-            {/* Mobile menu button */}
+            {/* Mobile menu toggle */}
             <button
               className="md:hidden inline-flex items-center justify-center p-2 rounded-md border border-gray-200 bg-white"
               onClick={() => setMobileOpen((s) => !s)}
@@ -114,7 +144,7 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
           </div>
         </div>
 
-        {/* Mobile panel */}
+        {/* Mobile nav panel */}
         <div
           className={`md:hidden mt-2 overflow-hidden transition-[max-height,opacity] duration-200 ${
             mobileOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
@@ -123,13 +153,22 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
         >
           <div className="space-y-2 pb-4">
             <div className="flex flex-col gap-1 px-2">
-              <Link href="/" className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+              <Link
+                to="/"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50"
+              >
                 <Gift className="h-4 w-4" /> Pack Opening
               </Link>
-              <Link href="/collection" className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+              <Link
+                to="/collection"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50"
+              >
                 <Layers className="h-4 w-4" /> Collection
               </Link>
-              <Link href="/training" className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+              <Link
+                to="/training"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-50"
+              >
                 <Brain className="h-4 w-4" /> Training area
               </Link>
             </div>
@@ -141,7 +180,12 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
                   <div className="text-sm font-semibold">{cardCount}</div>
                   <div className="text-sm text-gray-500">/ {totalCards}</div>
                 </div>
-                <Link href="/collection" className="text-sm text-blue-600">View collection</Link>
+                <Link
+                  to="/collection"
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  View collection
+                </Link>
               </div>
             </div>
           </div>

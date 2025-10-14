@@ -159,7 +159,7 @@ export function getImageUrl(
   size: number = 273 // default to small
 ): string {
   const base = API_BASE || "";
-  return `${base}/Images/${card.Id}_${size}.webp`;
+  return `${base}/storage/v1/object/public/ChineseRequest/${card.Id}_${size}.webp`;
 }
 // -----------------------------
 // Local collection helpers (localStorage-backed)
