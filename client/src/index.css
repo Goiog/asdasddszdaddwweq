@@ -47,6 +47,8 @@
   * {
     @apply border-border;
   }
+  /* modern browsers: reserve scrollbar space so the layout never jumps */
+  html { scrollbar-gutter: stable; }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;

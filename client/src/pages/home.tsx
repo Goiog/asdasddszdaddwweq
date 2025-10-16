@@ -50,12 +50,12 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50">
       <Navigation cardCount={uniqueCards.length} totalCards={allWords.length} />
 
       {/* If no words, show message and a manual refresh button that re-queries Supabase */}
       {!isLoading && allWords.length === 0 && (
-        <div className="container mx-auto px-4 py-12 text-center">
+        <div className="container mx-auto px-4 py-8 text-center">
           <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
             <h2 className="text-2xl font-bold mb-4">No cards found</h2>
             <p className="text-muted-foreground mb-6">

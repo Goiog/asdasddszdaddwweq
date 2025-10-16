@@ -180,11 +180,6 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   const handleCardClick = (card: ChineseWord) => { setSelectedCard(card); setIsModalOpen(true); };
   const handleCloseModal = () => { setIsModalOpen(false); setSelectedCard(null); };
 
-  // if (showExercises) {
-  //   return (
-  //     <RecognitionRecallExercise cards={revealedCards} onComplete={handleExercisesComplete} onBack={() => { setShowExercises(false); setShowCards(true); }} />
-  //   );
-  // }
 
   // --- Minimal presentational subcomponents ---
   function IconOctocat() {
@@ -214,7 +209,7 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="bg-slate-50 text-slate-900">
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar (filters) */}
@@ -321,14 +316,14 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div className="text-sm text-slate-600">All cards</div>
-          <div className="flex gap-2">
+          {/* <div className="flex gap-2">
             <button
               onClick={() => { setShowAll(false); setIndex(0); }}
               className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 transition-all"
             >
               <ChevronLeft className="w-5 h-5 text-slate-700" />
             </button>
-          </div>
+          </div> */}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 justify-items-center">

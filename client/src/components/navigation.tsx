@@ -124,7 +124,7 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
             </button>
 
             <Link
-              to="/login"
+              to="/Account"
               className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-md border border-gray-200 hover:shadow-sm focus:outline-none focus-visible:ring focus-visible:ring-offset-2"
               aria-label="Account"
             >

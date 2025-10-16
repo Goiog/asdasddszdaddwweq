@@ -10,6 +10,7 @@ import Collection from "@/pages/collection";
 import Training from "@/pages/training";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
+import Account from "@/pages/Account";
 import { AuthProvider, useAuth } from "@/components/AuthProvider";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -24,9 +25,9 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/collection" element={<Collection />} />
-      <Route
-        path="/training" element={<Training />} />
+      <Route path="/training" element={<Training />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/account" element={ <ProtectedRoute redirectTo="/login"><Account /></ProtectedRoute>}/>
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

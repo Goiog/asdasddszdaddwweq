@@ -307,11 +307,11 @@ export default function RecognitionRecallExercise({
           </div>
         </div>
 
-        <div className="flex justify-center space-x-4">
+        {/* <div className="flex justify-center space-x-4">
           <Button variant="outline" onClick={onBack} size="lg">
             Back to Training
           </Button>
-        </div>
+        </div> */}
       </div>
     </div>
   );
