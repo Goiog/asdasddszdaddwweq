@@ -59,7 +59,7 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Top navigation (kept consistent with collection.tsx) */}
       <Navigation cardCount={0} totalCards={0} />
 

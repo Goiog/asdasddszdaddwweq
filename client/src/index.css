@@ -2,7 +2,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+:root { font-size: 100%; } /* default */
 
+html.scale-90 { font-size: 90%; } /* apply this class for "zoomed-out" view */
 :root {
   /* Light theme */
   --background: hsl(30, 40%, 98%);          /* warm cream */
@@ -42,6 +44,55 @@
   --input: hsl(214, 27%, 17%);
   --ring: hsl(8, 68%, 57%);
 }
+
+/* globals.css */
+:root {
+  /* fluid root font size — roughly 14px -> 16px depending on viewport */
+  font-size: clamp(14px, 0.8vw + 12px, 16px);
+}
+
+/* optional: slightly reduce on very large UHD displays (tweak to taste) */
+@media (min-width: 2560px) {
+  :root {
+    font-size: clamp(13px, 0.6vw + 11px, 15px);
+  }
+}
+
+/* normalize paragraph margins (use where needed) */
+p { margin: 0; }
+
+/* 🔸 Base badge */
+.badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em; /* space between dot and text */
+}
+
+/* before element for the colored circle */
+.badge::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  border-radius: 0.25em;
+  background-color: var(--badge-border-color, currentColor);
+}
+
+/* 🔹 Category border colors */
+.badge.noun { border-color: #3498db; --badge-border-color: #3498db; }
+.badge.verb { border-color: #e74c3c; --badge-border-color: #e74c3c; }
+.badge.adjective { border-color: #2ecc71; --badge-border-color: #2ecc71; }
+.badge.adverb { border-color: #f1c40f; --badge-border-color: #f1c40f; }
+.badge.pronoun { border-color: #9b59b6; --badge-border-color: #9b59b6; }
+.badge.preposition { border-color: #8e44ad; --badge-border-color: #8e44ad; }
+.badge.conjunction { border-color: #95a5a6; --badge-border-color: #95a5a6; }
+.badge.interjection { border-color: #e67e22; --badge-border-color: #e67e22; }
+.badge.determiner { border-color: #34495e; --badge-border-color: #34495e; }
+.badge.particle { border-color: #7f8c8d; --badge-border-color: #7f8c8d; }
+.badge.auxiliary { border-color: #1abc9c; --badge-border-color: #1abc9c; }
+.badge.classifier { border-color: #ff66b2; --badge-border-color: #ff66b2; }
+
 
 @layer base {
   * {

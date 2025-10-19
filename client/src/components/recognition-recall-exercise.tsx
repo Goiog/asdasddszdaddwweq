@@ -36,7 +36,7 @@ export default function RecognitionRecallExercise({
   const [showFinalResults, setShowFinalResults] = useState(false);
   const [exercises, setExercises] = useState<ExerciseData[]>([]);
 
-  // Generate exercises when component mounts
+
   // Generate exercises when component mounts
   useEffect(() => {
     if (cards.length > 0) {
@@ -82,20 +82,20 @@ export default function RecognitionRecallExercise({
     
     // First try to find cards with same HSK level
     let candidateCards = allCards.filter(card => 
-      card.id !== targetCard.id && card.HSK === targetCard.HSK
+      card.Id !== targetCard.Id && card.HSK === targetCard.HSK
     );
     
     // If not enough, expand to adjacent HSK levels
     if (candidateCards.length < 2) {
       candidateCards = allCards.filter(card => 
-        card.id !== targetCard.id && 
+        card.Id !== targetCard.Id && 
         Math.abs(Number(card.HSK || 1) - Number(targetCard.HSK || 1)) <= 1
       );
     }
     
     // If still not enough, use any other cards
     if (candidateCards.length < 2) {
-      candidateCards = allCards.filter(card => card.id !== targetCard.id);
+      candidateCards = allCards.filter(card => card.Id !== targetCard.Id);
     }
     
     // Add unique translations until we have 3 total
@@ -123,7 +123,7 @@ export default function RecognitionRecallExercise({
     
     // Find cards with pinyin that shares at least 1 letter
     const similarPinyinCards = allCards.filter(card => {
-      if (card.id === targetCard.id) return false;
+      if (card.Id === targetCard.Id) return false;
       const cardPinyin = card.Pinyin.toLowerCase().replace(/\d/g, '');
       
       // Check if they share at least one letter
@@ -144,7 +144,7 @@ export default function RecognitionRecallExercise({
     
     // Fallback to any other cards if not enough
     while (choices.length < 3) {
-      const otherCards = allCards.filter(card => !choices.find(c => c.id === card.id));
+      const otherCards = allCards.filter(card => !choices.find(c => c.Id === card.Id));
       if (otherCards.length > 0) {
         choices.push(otherCards[Math.floor(Math.random() * otherCards.length)]);
       } else {
@@ -185,7 +185,7 @@ export default function RecognitionRecallExercise({
         correct = selectedChoice === currentExercise.card.Translation;
         break;
       case 'character_choice':
-        correct = selectedChoice === currentExercise.card.id;
+        correct = selectedChoice === currentExercise.card.Id;
         break;
     }
 
@@ -261,10 +261,10 @@ export default function RecognitionRecallExercise({
     }
   };
   const uniqueTrainedCards = Array.from(
-    new Map(exercises.map(e => [e.card.id, e.card])).values()
+    new Map(exercises.map(e => [e.card.Id, e.card])).values()
   );
   
-    // Automatically add cards to collection once final results appear
+
   
 
   if (showFinalResults) {
@@ -292,7 +292,7 @@ export default function RecognitionRecallExercise({
           <div className="flex flex-wrap justify-center gap-2">
             {uniqueTrainedCards.map((card, index) => (
               <motion.div
-                key={card.id}
+                key={card.Id}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
@@ -306,12 +306,6 @@ export default function RecognitionRecallExercise({
             ))}
           </div>
         </div>
-
-        {/* <div className="flex justify-center space-x-4">
-          <Button variant="outline" onClick={onBack} size="lg">
-            Back to Training
-          </Button>
-        </div> */}
       </div>
     </div>
   );
@@ -670,9 +664,9 @@ function CharacterChoiceExercise({
       <div className="space-y-3">
         {choices.map((choice, index) => (
           <Button
-            key={choice.id}
-            variant={selectedChoice === choice.id ? "default" : "outline"}
-            onClick={() => setSelectedChoice(choice.id)}
+            key={choice.Id}
+            variant={selectedChoice === choice.Id ? "default" : "outline"}
+            onClick={() => setSelectedChoice(choice.Id)}
             className="w-full text-left justify-start h-auto p-4"
           >
             <span className="font-semibold mr-3">{String.fromCharCode(65 + index)}.</span>

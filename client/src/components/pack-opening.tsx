@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
-import type { ChineseWord } from "@/lib/card-utils";
-import { createSupabaseClient, TABLE_NAME } from "@/lib/card-utils";
+import type { ChineseWord} from "@/lib/card-utils";
+import { allCards } from "@/lib/card-utils";
 import Card from "@/components/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +35,6 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
   const [collectionUnique, setCollectionUnique] = useState<any[]>(uniqueCardsProp ?? []);
-  const supabase = createSupabaseClient();
 
   // small UI states
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -58,7 +58,7 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
     }
   }, [userId, uniqueCardsProp, collectionUnique.length]);
 
-  const isUnlocked = (word: any) => collectionUnique.some((item: any) => item.word?.id === word.id || item.id === word.id);
+  const isUnlocked = (word: any) => collectionUnique.some((item: any) => item.word?.Id === word.Id || item.Id === word.Id);
 
   useEffect(() => {
     if (revealedCards.length > 0) {
@@ -98,41 +98,20 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   async function fetchCardsForPack(packType: string) {
     const config = PACK_CONFIGS[packType];
     if (!config) throw new Error("Unknown pack type: " + packType);
-    const { data, error } = await supabase.from(TABLE_NAME).select("*").limit(1000);
-    if (error) throw error;
-    const rows: any[] = Array.isArray(data) ? data : [];
-    const hskFieldCandidates = ["hskLevel", "HSKLevel", "hsk_level", "hsk", "level", "HSK"];
-    const detectedField = hskFieldCandidates.find(f => rows.some(r => r && Object.prototype.hasOwnProperty.call(r, f)));
-    const fallbackField = Object.keys(rows[0] ?? {}).find(k => /hsk/i.test(k));
-    const usedField = detectedField ?? fallbackField;
+    const rows = await allCards();
+    const usedField = "HSK" as keyof ChineseWord;
     const candidates = rows.filter(r => {
       if (!usedField) return true;
-      const rawVal = r[usedField]; if (rawVal === undefined || rawVal === null) return false;
+      const rawVal = r[usedField];
+      if (rawVal === undefined || rawVal === null) return false;
       return String(rawVal) === String(config.hskLevel);
     });
     const pool = candidates.length >= config.count ? candidates : rows;
     const sampled = weightedSampleWithoutReplacement(pool, config.count, (r: any) => {
-      const cand = r.Frequency ?? r.frequency ?? r.Probability ?? r.probability ?? r.prob ?? r.weight ?? r.Weight ?? null;
-      if (cand === null || cand === undefined) return 1;
-      const num = Number(cand); return isFinite(num) ? Math.max(0, num) : 0;
+      if (r.Frequency === null || r.Frequency === undefined) return 1;
+      const num = Number(r.Frequency); return isFinite(r.Frequency) ? Math.max(0, r.Frequency) : 0;
     });
-    const normalized: ChineseWord[] = sampled.map((r: any) => {
-      const Id = r.Id ?? r.id ?? r.IdCard ?? null;
-      return {
-        id: String(Id ?? r.Id ?? r.id ?? ""),
-        Id: typeof Id === "number" ? Id : Id ? Number(Id) : undefined,
-        Chinese: r.Chinese ?? r.chinese ?? null,
-        Pinyin: r.Pinyin ?? r.pinyin ?? null,
-        Translation: r.Translation ?? r.translation ?? null,
-        HSK: r.HSK ?? r.hsk ?? null,
-        Frequency: typeof r.Frequency === "number" ? r.Frequency : r.Frequency ? Number(r.Frequency) : null,
-        Theme: r.Theme ?? r.theme ?? null,
-        Image: r.Image ?? r.image ?? null,
-        Examples: r.Examples ?? r.examples ?? null,
-        Meaning: r.Meaning ?? r.meaning ?? null,
-      } as ChineseWord;
-    });
-    return normalized;
+    return sampled as ChineseWord[];
   }
 
   const openPack = async (packType: string) => {
@@ -181,14 +160,6 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   const handleCloseModal = () => { setIsModalOpen(false); setSelectedCard(null); };
 
 
-  // --- Minimal presentational subcomponents ---
-  function IconOctocat() {
-    return (
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden>
-        <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2 .37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.02.08-2.13 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.11.16 1.93.08 2.13.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.19 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" fill="currentColor" />
-      </svg>
-    );
-  }
 
   function PackCardClean({ packType, title, description, details, onClick }: { packType: string; title: string; description: string; details: string; onClick: () => void; }) {
     return (
@@ -209,7 +180,7 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
   }
 
   return (
-    <div className="bg-slate-50 text-slate-900">
+    <div className="bg-background text-slate-900">
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar (filters) */}
@@ -279,8 +250,6 @@ export default function PackOpening({ onPackOpened, uniqueCards: uniqueCardsProp
           </section>
         </div>
       </main>
-
-      {/* <CardModal card={selectedCard} isOpen={isModalOpen} onClose={handleCloseModal} onCardChange={(newCard)=> setSelectedCard(newCard)} allCards={revealedCards} /> */}
     </div>
   );
 }
@@ -316,26 +285,18 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div className="text-sm text-slate-600">All cards</div>
-          {/* <div className="flex gap-2">
-            <button
-              onClick={() => { setShowAll(false); setIndex(0); }}
-              className="p-2 rounded-full border border-slate-300 hover:bg-slate-100 transition-all"
-            >
-              <ChevronLeft className="w-5 h-5 text-slate-700" />
-            </button>
-          </div> */}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 justify-items-center">
           {cards.map((card, i) => (
             <motion.div
-              key={card.id ?? i}
+              key={card.Id ?? i}
               layout
               whileHover={{ y: -4 }}
               className="bg-white rounded-sm cursor-pointer"
               onClick={() => {
                 // find the index of the clicked card
-                const i = cards.findIndex(c => c.id === card.id);
+                const i = cards.findIndex(c => c.Id === card.Id);
                 if (i !== -1) {
                   setIndex(i);      // show that card
                   setShowAll(false); // exit "show all" mode

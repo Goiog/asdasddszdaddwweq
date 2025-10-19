@@ -8,60 +8,16 @@ import { Button } from "@/components/ui/button";
 import { ProgressHSKPanel } from "@/components/ProgressHSKPanel"; // adjust path
 import { Grid, Hash, Palette, ArrowUpDown, LockOpen, Lock, Trophy } from "lucide-react";
 import {
-  loadCollectionFromLocalStorage,
-  fetchAllWords,
-  ChineseWord
+  ChineseWord, getUserUnlockedCards,allCards
 } from "@/lib/card-utils";
 import { SearchBar } from "@/components/SearchBar";
-import { Checkbox } from "@/components/ui/checkbox";
 import PaginationBar from "@/components/PaginationBar";
 import { ProgressRing , ProgressToggleButton} from "@/components/ProgressRingButton";
 
 
-// normalizeRowToChineseWord(...) unchanged (kept as in your original file)
-function normalizeRowToChineseWord(raw: any): ChineseWord {
-  if (!raw || typeof raw !== "object") return {
-    id: "",
-    Chinese: null,
-    Pinyin: "",
-    Translation: "",
-    HSK: null,
-    Frequency: null,
-    Theme: null,
-    Image: null,
-    Examples: null,
-    Meaning: null,
-    unlocked: false,
-    isNew: false,
-  };
-
-  const numericId = raw?.Id ?? raw?.id ?? raw?.cardId ?? raw?.ID ?? undefined;
-  const idStr = numericId != null ? String(numericId) : (raw?.id ? String(raw.id) : "");
-
-  return {
-    id: String(idStr ?? ""),
-    Id: Number.isFinite(Number(numericId)) ? Number(numericId) : undefined,
-    Chinese: raw?.Chinese ?? raw?.chinese ?? raw?.hanzi ?? null,
-    Pinyin: raw?.Pinyin ?? raw?.pinyin ?? raw?.py ?? "",
-    Translation: raw?.Translation ?? raw?.translation ?? raw?.Meaning ?? raw?.meaning ?? "",
-    HSK: raw?.HSK ?? raw?.hsk ?? raw?.hsklevel ?? null,
-    Frequency: raw?.Frequency != null ? Number(raw.Frequency) : null,
-    Theme: raw?.Theme ?? raw?.theme ?? null,
-    Image: raw?.Image ?? raw?.image ?? null,
-    Examples: raw?.Examples ?? raw?.examples ?? null,
-    Meaning: raw?.Meaning ?? raw?.meaning ?? null,
-    unlocked: Boolean(raw?.unlocked ?? false),
-    isNew: Boolean(raw?.isNew ?? false),
-  };
-}
-
 export default function CollectionPage(): JSX.Element {
   // Load local collection (normalized)
-  const [collection] = useState<ChineseWord[] | any[]>(() => {
-    const raw = loadCollectionFromLocalStorage();
-    if (!Array.isArray(raw)) return [];
-    return raw.map((r) => normalizeRowToChineseWord(r));
-  });
+
 
   // UI state
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,11 +37,6 @@ export default function CollectionPage(): JSX.Element {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
-  // Debounce search (300ms)
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
 
   // Reset page to 1 when filters or search changes so user doesn't land on an empty page
   useEffect(() => {
@@ -93,38 +44,36 @@ export default function CollectionPage(): JSX.Element {
   }, [debouncedQuery, hskFilter, themeFilter, sortBy, showOnlyUnlocked, searchMode]);
 
   // Fetch all words from remote source and normalize
-  const { data: allWordsRaw = [], isLoading } = useQuery<any[]>({
+  const {
+    data: allWords = [],
+    isLoading: isAllWordsLoading,
+  } = useQuery<ChineseWord[]>({
     queryKey: ["words"],
-    queryFn: async () => {
-      const rows = await fetchAllWords();
-      return rows ?? [];
-    },
+    queryFn: allCards,
     staleTime: 1000 * 60 * 5,
   });
 
-  const allWords: ChineseWord[] = useMemo(() => {
-    return (allWordsRaw ?? []).map((r: any) => normalizeRowToChineseWord(r));
-  }, [allWordsRaw]);
 
   // Deduplicate local collection
-  const uniqueCards = useMemo(() => {
-    const seen = new Set<string>();
-    const out: ChineseWord[] = [];
-    for (const item of collection) {
-      const row = normalizeRowToChineseWord(item);
-      if (!row.id) continue;
-      if (seen.has(row.id)) continue;
-      seen.add(row.id);
-      out.push(row);
-    }
-    return out;
-  }, [collection]);
+  const {
+    data: uniqueCards = [],
+    isLoading: isCollectionLoading,
+    refetch: refetchCollection,
+  } = useQuery<ChineseWord[]>({
+    queryKey: ["userUnlockedCards"],
+    queryFn: getUserUnlockedCards,
+    staleTime: 1000 * 60 * 5, // cache 5 minutes
+  });
 
   // Combine DB words with owned flag
   const combinedCards = useMemo(() => {
-    const ownedIds = new Set(uniqueCards.map((c) => String(c.id)));
-    return allWords.map((word) => ({ word, unlocked: ownedIds.has(String(word.id)) }));
+    const ownedIds = new Set(uniqueCards.map((c) => String(c.Id)));
+    return allWords.map((word) => ({
+      word,
+      unlocked: ownedIds.has(String(word.Id)),
+    }));
   }, [allWords, uniqueCards]);
+
 
   // Stats
   const stats = useMemo(() => {
@@ -189,7 +138,7 @@ export default function CollectionPage(): JSX.Element {
           return 0;
         case "id":
         default:
-          return (Number(wa.id) || 0) - (Number(wb.id) || 0);
+          return (Number(wa.Id) || 0) - (Number(wb.Id) || 0);
       }
     });
 
@@ -225,7 +174,7 @@ export default function CollectionPage(): JSX.Element {
   const progressPercentage = allWords.length > 0 ? (uniqueCards.length / allWords.length) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Navigation cardCount={uniqueCards.length} totalCards={allWords.length} />
 
       <main className="container mx-auto px-4 py-8">
@@ -351,7 +300,7 @@ export default function CollectionPage(): JSX.Element {
         </div>
 
         {/* Loading skeleton */}
-        {isLoading && (
+        {isAllWordsLoading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="animate-pulse bg-card border border-border rounded-xl p-6 h-40" />
@@ -360,7 +309,7 @@ export default function CollectionPage(): JSX.Element {
         )}
 
         {/* Empty state */}
-        {!isLoading && filteredCards.length === 0 && (
+        {!isAllWordsLoading && filteredCards.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🃏</div>
             <h3 className="text-2xl font-bold mb-2">No cards found</h3>
@@ -373,7 +322,7 @@ export default function CollectionPage(): JSX.Element {
         )}
 
         {/* Cards grid / list with pagination */}
-        {!isLoading && filteredCards.length > 0 && (
+        {!isAllWordsLoading && filteredCards.length > 0 && (
           <section aria-live="polite">
             {/* Top pagination bar */}
             <PaginationBar
@@ -385,7 +334,7 @@ export default function CollectionPage(): JSX.Element {
 
             <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 justify-items-center" : "space-y-4"}>
               {visibleCards.map(({ word, unlocked }) => (
-                <div key={word.id} className="relative">
+                <div key={word.Id} className="relative">
                   <Card card={word} size={viewMode === "grid" ? "l" : "m"} onClick={() => handleCardClick(word, unlocked)} className={`${viewMode === "list" ? "flex-row w-full" : ""} ${!unlocked ? "filter: blur" : ""}`} />
 
                   {!unlocked && (

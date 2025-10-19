@@ -1,11 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/navigation';
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from '@/lib/supabase';
+import { useAuth } from "@/hooks/useAuth";
+import {
+  getUserUnlockedCards,
+  allCards,
+  ChineseWord
+} from "@/lib/card-utils";
+
 
 export default function Account(): JSX.Element {
+  const { session } = useAuth();           // use the same session from hook
+  const { user, refreshSession } = useAuth();
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [fullName, setFullName] = useState('');
@@ -13,35 +22,28 @@ export default function Account(): JSX.Element {
   const [showRaw, setShowRaw] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
+  const {
+    data: allWords = [],
+    isLoading: isAllWordsLoading,
+  } = useQuery<ChineseWord[]>({
+    queryKey: ["words"],
+    queryFn: allCards,
+    staleTime: 1000 * 60 * 5,
+  });
 
-    (async () => {
-      try {
-        // Ensure there is a session & user (v2 client)
-        const sessionResp = await supabase.auth.getSession();
-        const session = sessionResp.data?.session ?? null;
-        if (!session || !session.user) {
-          // not logged → send to login
-          navigate('/login');
-          return;
-        }
 
-        if (!mounted) return;
-        setUser(session.user);
-        setFullName(session.user.user_metadata?.full_name ?? '');
-      } catch (err: any) {
-        console.error('Error fetching session/user', err);
-        navigate('/login');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
+  // Deduplicate local collection
+  const {
+    data: uniqueCards = [],
+    isLoading: isCollectionLoading,
+    refetch: refetchCollection,
+  } = useQuery<ChineseWord[]>({
+    queryKey: ["userUnlockedCards"],
+    queryFn: getUserUnlockedCards,
+    staleTime: 1000 * 60 * 5, // cache 5 minutes
+  });
 
-    return () => {
-      mounted = false;
-    };
-  }, [navigate]);
+  if (!user) return <div className="min-h-screen flex items-center justify-center">Loading account…</div>; // navigate already handled
 
   const handleLogout = async () => {
     setLoading(true);
@@ -56,24 +58,29 @@ export default function Account(): JSX.Element {
     setMessage(null);
 
     try {
-      // update user metadata (name) — this is safe client-side in most Supabase setups
-      const { data, error } = await supabase.auth.updateUser({ data: { full_name: fullName } });
+      const { data, error } = await supabase.auth.updateUser({
+        data: { full_name: fullName },
+      });
+
       if (error) {
         setMessage(error.message);
       } else {
-        setUser(data.user ?? data);
+        // optional: refresh the auth context if your AuthProvider exposes a refresh
+        if (typeof refreshSession === "function") {
+          await refreshSession();
+        }
+
         setEditingName(false);
-        setMessage('Profile updated');
+        setMessage("Profile updated");
       }
     } catch (err: any) {
-      setMessage(err?.message ?? 'Unknown error');
+      setMessage(err?.message ?? "Unknown error");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading account…</div>;
-  if (!user) return null; // navigate already handled
+  
 
   const initials = (fullName || user.email || '')
     .split(/\s+/)
@@ -84,9 +91,15 @@ export default function Account(): JSX.Element {
 
   const emailVerified = Boolean(user.email_confirmed_at || user.confirmed_at);
 
+  // normalizeRowToChineseWord(...) unchanged (kept as in your original file)
+  
+  
+
+
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navigation cardCount={0} totalCards={0} />
+    <div className="min-h-screen bg-background">
+      <Navigation cardCount={uniqueCards.length} totalCards={allWords.length} />
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto grid gap-6">

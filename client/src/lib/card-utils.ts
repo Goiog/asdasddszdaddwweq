@@ -1,39 +1,9 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { SUPABASE_URL_LOCAL, SUPABASE_ANON_KEY_LOCAL, API_BASE_LOCAL } from "../config";
+import { SUPABASE_URL, supabase} from "./supabase";
 
-/**
- * Environment — use the Vite env names you provIded
- */
-export const SUPABASE_URL =
-  (import.meta as any).env?.VITE_SUPABASE_URL ?? SUPABASE_URL_LOCAL ?? ""; // your Render server origin for database
-export const SUPABASE_ANON_KEY =
-  (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? SUPABASE_ANON_KEY_LOCAL ?? "";
-export const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE_URL ?? API_BASE_LOCAL ?? ""; // your Render server origin for images
-
-let _supabase: SupabaseClient | null = null;
-
-// Create a Supabase client (exported for tests or direct usage)
-export function createSupabaseClient(): SupabaseClient {
-  if (_supabase) return _supabase;
-
-  // If envs are missing we still create the client (avoIds runtime crash while building),
-  // but it's good to log so you can catch missing envs in dev.
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    // optional: console.warn("Supabase env missing, createClient will use empty strings");
-  }
-
-  _supabase = createClient(SUPABASE_URL || "", SUPABASE_ANON_KEY || "", {
-    // you can tune options here, e.g. auth/persistSession depending on your needs
-    // avoId introducing any packages that might import react-query
-  });
-
-  return _supabase;
-}
+export const TABLE_NAME = "ChineseDatabase";
 
 export type ChineseWord = {
-  id: string;
-  Id?: number; // original numeric Id if you need it
+  Id: string;
   Chinese?: string | null;
   Pinyin?: string ;
   Translation?: string;
@@ -43,99 +13,107 @@ export type ChineseWord = {
   Image?: string | null;
   Examples?: string | null;
   Meaning?: string | null;
-  // local/UI helpers (not stored in DB)
-  unlocked?: boolean;
-  isNew?: boolean;
+  Category?: string |null;
 };
 
-/** Map a DB row (Supabase) to our frontend ChineseWord shape */
-function mapDbRowToChineseWord(r: any): ChineseWord {
-  if (!r) return null as any;
-  const Id = r.Id ?? r.Id ?? r.IdCard ?? null; // be permissive
-  return {
-    id: String(Id ?? r.Id ?? r.id),
-    Id: typeof Id === "number" ? Id : Id,
-    Chinese: r.Chinese ?? r.chinese,
-    Pinyin: r.Pinyin ?? r.pinyin,
-    Translation: r.Translation ?? r.translation,
-    HSK: r.HSK ?? r.hsk,
-    Frequency:
-      typeof r.Frequency === "number"
-        ? r.Frequency
-        : r.Frequency
-        ? Number(r.Frequency)
-        : null,
-    Theme: r.Theme ?? r.theme ?? null,
-    Image: r.Image ?? r.image ?? null,
-    Examples: r.Examples ?? r.examples ?? null,
-    Meaning: r.Meaning ?? r.meaning ?? null,
-  };
+function throwIfError(result: { error: any }) {
+  if (result.error) throw result.error;
 }
 
-/** Convenience: wrap Supabase errors */
-async function handleResult<T>(res: {
-  data: T | null;
-  error: any;
-  status?: number;
-}): Promise<T> {
-  if (res.error) {
-    const err = new Error(res.error.message || String(res.error));
-    (err as any).original = res.error;
-    throw err;
-  }
-  return res.data as T;
+export async function unlockCard(cardId: number | string): Promise<void> {
+  // ensure cardId passed as string if it's larger than JS safe int
+  const p_card_id = typeof cardId === 'number' ? String(cardId) : cardId;
+
+  const { error } = await supabase.rpc('unlock_card', { p_card_id });
+  throwIfError({ error });
 }
 
-// -----------------------------
-// Main DB functions (client-sIde Supabase + RLS)
-// -----------------------------
-export const TABLE_NAME = "ChineseDatabase";
-
-/** Fetch all words from Supabase table. */
-export async function fetchAllWords(): Promise<ChineseWord[]> {
-  const supabase = createSupabaseClient();
-  const res = await supabase.from(TABLE_NAME).select("*").limit(1000);
-  const rows = await handleResult<any[]>(res);
-  return (rows || []).map(mapDbRowToChineseWord).filter(Boolean);
+export async function unlockCardsBulk(cardIds: Array<number | string>): Promise<void> {
+  // Convert to array of strings to avoid bigint issues
+  const p_card_ids = cardIds.map((Id) => (typeof Id === 'number' ? String(Id) : Id));
+  const { error } = await supabase.rpc('unlock_cards_bulk', { p_card_ids });
+  throwIfError({ error });
 }
 
-/** Fetch a single word by numeric Id (or string) */
-export async function fetchWordById(Id: string): Promise<ChineseWord | null> {
-  const supabase = createSupabaseClient();
-  // Id is numeric in DB; be permissive
-  const numeric = Number(Id);
-  const res = await supabase
-    .from(TABLE_NAME)
-    .select("*")
-    .limit(1000)
-    .eq("Id", Number.isFinite(numeric) ? numeric : Id)
+export async function hasUnlocked(cardId: number | string): Promise<boolean> {
+  const cardIdStr = typeof cardId === 'number' ? String(cardId) : cardId;
+
+  const { data, error } = await supabase
+    .from('unlocked_cards')
+    .select('card_id', { count: 'exact', head: false })
+    .eq('card_id', cardIdStr)
     .limit(1);
-  const rows = await handleResult<any[]>(res);
-  if (!rows || rows.length === 0) return null;
-  return mapDbRowToChineseWord(rows[0]);
+
+  throwIfError({ error });
+
+  // data may be an array — if at least one row, it's unlocked
+  return Array.isArray(data) && data.length > 0;
 }
 
-/** Search words by q (searches Chinese, Pinyin, Translation). Limit default 50. */
-export async function searchWords(q: string, limit = 1000): Promise<ChineseWord[]> {
-  if (!q || q.trim() === "") return [];
-  const supabase = createSupabaseClient();
-  // Basic full-text-ish search using ilike on key columns (safe for RLS+anon)
-  const like = `%${q.replace(/%/g, "\\%")}%`;
+export async function getCard(cardId: number | string): Promise<ChineseWord | null> {
+  const cardIdStr = typeof cardId === 'number' ? String(cardId) : cardId;
+
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select('*')
+    .eq('Id', cardIdStr)
+    .limit(1)
+    .maybeSingle();
+
+  throwIfError({ error });
+  return data ?? null;
+}
+
+export async function allCards(): Promise<ChineseWord[]> {
   const { data, error } = await supabase
     .from(TABLE_NAME)
     .select("*")
-    .limit(1000)
-    .or(
-      `Chinese.ilike.${like},Pinyin.ilike.${like},Translation.ilike.${like}`
-    )
-    .limit(limit);
-  if (error) throw error;
-  return (data || []).map(mapDbRowToChineseWord);
+    .order("Id", { ascending: true }) // explicit ordering
+    .range(0, 499);                    // explicit range (0-based inclusive)
+
+  throwIfError({ error });
+  return (data ?? []) as ChineseWord[];
+}
+export async function getUserUnlockedCardIds(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('unlocked_cards')
+    .select('card_id')
+    .order('date_unlocked', { ascending: false });
+
+  throwIfError({ error });
+
+  if (!Array.isArray(data)) return [];
+
+  // Each row is { card_id: '...' }
+  return data.map((r: any) => String(r.card_id));
+}
+
+export async function getUserUnlockedCards(): Promise<ChineseWord[]> {
+  const cardIds = await getUserUnlockedCardIds();
+  if (cardIds.length === 0) return [];
+
+  // Query ChineseDatabase for these ids. Use .in() with array of strings.
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select('*')
+    .in('Id', cardIds);
+
+  throwIfError({ error });
+
+  return (data ?? []) as ChineseWord[];
+}
+
+export async function ensureUnlocked(cardId: number | string): Promise<{ alreadyUnlocked: boolean }> {
+  const already = await hasUnlocked(cardId);
+  if (already) return { alreadyUnlocked: true };
+
+  await unlockCard(cardId);
+  return { alreadyUnlocked: false };
 }
 
 /** Get n random words (client-sIde randomness). */
 export async function getRandomWords(count = 10): Promise<ChineseWord[]> {
-  const all = await fetchAllWords();
+  const all = await allCards();
   // simple shuffle
   for (let i = all.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -144,79 +122,10 @@ export async function getRandomWords(count = 10): Promise<ChineseWord[]> {
   return all.slice(0, count);
 }
 
-// -----------------------------
-// Image helper (use your Render server)
-// -----------------------------
-/**
- * getImageUrl expects a card with `Id` (string). It will return:
- *  - API_BASE + /Images/{Id}.webp  (if API_BASE set)
- *  - /Images/{Id}.webp             (if API_BASE empty, same-origin)
- *
- * If your DB stores full image URLs in `Image`, callers can prefer that field.
- */
 export function getImageUrl(
   card: { Id: string; Image?: string | null },
   size: number = 273 // default to small
 ): string {
-  const base = API_BASE || "";
+  const base = SUPABASE_URL || "";
   return `${base}/storage/v1/object/public/ChineseRequest/${card.Id}_${size}.webp`;
-}
-// -----------------------------
-// Local collection helpers (localStorage-backed)
-// -----------------------------
-const LOCAL_COLLECTION_KEY = "my_app_collection_v1";
-
-/** Normalize a stored item (backwards compat) */
-function normalizeStoredCard(c: any): ChineseWord {
-  if (!c) return c;
-  // ensure Id is string
-  return {
-    ...c,
-    Id: typeof c.Id === "number" ? String(c.Id) : c.Id ?? String(c.Id ?? ""),
-  };
-}
-
-export function loadCollectionFromLocalStorage(): ChineseWord[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_COLLECTION_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map(normalizeStoredCard);
-  } catch (e) {
-    console.warn("Unable to load collection from localStorage", e);
-    return [];
-  }
-}
-
-function saveCollectionToLocalStorage(collection: ChineseWord[]) {
-  try {
-    localStorage.setItem(
-      LOCAL_COLLECTION_KEY,
-      JSON.stringify(collection.map((c) => ({ ...c })))
-    );
-  } catch (e) {
-    console.warn("Unable to save collection to localStorage", e);
-  }
-}
-
-/** Add a card to the local collection. Returns the updated collection. */
-export function addCardToLocalCollection(card: ChineseWord): ChineseWord[] {
-  const current = loadCollectionFromLocalStorage();
-  if (current.some((c) => c.Id === card.Id)) return current;
-  const next = [normalizeStoredCard(card), ...current];
-  saveCollectionToLocalStorage(next);
-  return next;
-}
-
-/** Remove a card by Id from the local collection. Returns the updated collection. */
-export function removeCardFromLocalCollection(Id: string): ChineseWord[] {
-  const next = loadCollectionFromLocalStorage().filter((c) => c.Id !== Id);
-  saveCollectionToLocalStorage(next);
-  return next;
-}
-
-/** Check whether a card Id is in the local collection. */
-export function isCardInLocalCollection(Id: string): boolean {
-  return loadCollectionFromLocalStorage().some((c) => c.Id === Id);
 }

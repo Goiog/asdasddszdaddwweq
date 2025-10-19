@@ -20,23 +20,21 @@ type ProtectedRouteProps = {
  * Usage:
  * <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
  */
+// src/components/ProtectedRoute.tsx
 export function ProtectedRoute({
   children,
   redirectTo = "/login",
-  loadingFallback = <div>Loading…</div>,
+  loadingFallback = (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="p-4 rounded shadow">Loading…</div>
+    </div>
+  ),
 }: ProtectedRouteProps) {
   const { session, isLoading } = useAuth();
 
-  if (isLoading) {
-    // show a non-blocking spinner / skeleton while we determine auth state
-    return loadingFallback;
-  }
+  if (isLoading) return loadingFallback;
+  if (!session) return <Navigate to={redirectTo} replace />;
 
-  // not authenticated → redirect to login
-  if (!session) {
-    return <Navigate to={redirectTo} replace />;
-  }
-
-  // authenticated → render children
   return children;
 }
+

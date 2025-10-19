@@ -1,32 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navigation from "@/components/navigation";
 import TrainingArea from "@/components/training-area";
-import { loadCollectionFromLocalStorage, fetchAllWords } from "@/lib/card-utils";
+import { getUserUnlockedCards, allCards } from "@/lib/card-utils";
 import type { ChineseWord } from "@/lib/card-utils";
 
 export default function Training() {
-  const [collection] = useState(loadCollectionFromLocalStorage());
-
   const {
       data: allWords = [],
-      isLoading,
-      isError,
-      refetch,
+      isLoading: isAllWordsLoading,
     } = useQuery<ChineseWord[]>({
       queryKey: ["words"],
-      queryFn: fetchAllWords,
-      // Keep previous data while refetching to avoid UI flashes
-      keepPreviousData: true,
-      // stale time short so manual refresh is meaningful in dev; tune as needed
-      staleTime: 1000 * 60,
+      queryFn: allCards,
+      staleTime: 1000 * 60 * 5,
     });
-
-  // Get unique unlocked cards from collection
-  const uniqueCards = collection.reduce<ChineseWord[]>((acc, item) => {
-      if (!acc.find((c) => c.Id === item.Id)) acc.push(item);
-      return acc;
-    }, []);
+  
+  
+    // Deduplicate local collection
+    const {
+      data: uniqueCards = [],
+      isLoading: isCollectionLoading,
+      refetch: refetchCollection,
+    } = useQuery<ChineseWord[]>({
+      queryKey: ["userUnlockedCards"],
+      queryFn: getUserUnlockedCards,
+      staleTime: 1000 * 60 * 5, // cache 5 minutes
+    });
 
   // Get all unlocked words from the collection
   const unlockedWords = uniqueCards
@@ -34,7 +33,7 @@ export default function Training() {
     .filter(Boolean) as ChineseWord[];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Navigation cardCount={uniqueCards.length} totalCards={allWords.length} />
       
       <TrainingArea unlockedCards={unlockedWords} />

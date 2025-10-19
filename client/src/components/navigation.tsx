@@ -11,7 +11,7 @@ import {
   Settings,
   Bell
 } from "lucide-react";
-
+import { SUPABASE_URL } from "@/lib/supabase";
 interface NavigationProps {
   cardCount: number;
   totalCards: number;
@@ -64,12 +64,14 @@ export default function Navigation({ cardCount, totalCards }: NavigationProps) {
                 to="/"
                 className="flex items-center gap-2 no-underline focus:outline-none"
               >
-                <div className="rounded-md p-1 bg-gray-100 border border-gray-200">
-                  <span className="text-lg"></span>
-                </div>
+                <img
+                  src={`${SUPABASE_URL}/storage/v1/object/public/ChineseRequest/Logo_bunny_2.webp`}
+                  alt="Chinese Cards logo"
+                  className="w-11 h-11 rounded-md border border-gray-200 object-cover"
+                />
                 <div className="truncate">
                   <h1 className="text-sm font-semibold text-gray-900 leading-5">
-                    Chinese Cards
+                    YueTu Deck
                   </h1>
                   <p className="text-xs text-gray-500 -mt-0.5">
                     Study • Collect • Train

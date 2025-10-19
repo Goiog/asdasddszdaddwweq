@@ -4,18 +4,26 @@ import type { ChineseWord } from "@/lib/card-utils";
 import Navigation from "@/components/navigation";
 import PackOpening from "@/components/pack-opening";
 import {
-  loadCollectionFromLocalStorage,
-  addCardToLocalCollection,
-  fetchAllWords,
+  getUserUnlockedCards,
+  unlockCard,
+  allCards,
 } from "@/lib/card-utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
 export default function Home() {
-  const [collection, setCollection] = useState<ChineseWord[]>(
-    loadCollectionFromLocalStorage()
-  );
+
+  const {
+    data: collection = [],
+    isLoading: isCollectionLoading,
+    refetch: refetchCollection,
+  } = useQuery<ChineseWord[]>({
+    queryKey: ["userUnlockedCards"],
+    queryFn: getUserUnlockedCards,
+    staleTime: 1000 * 60 * 5, // cache for 5 min
+  });
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -23,26 +31,38 @@ export default function Home() {
     data: allWords = [],
     isLoading,
     isError,
-    refetch,
+    refetch: refetchAllWords,
   } = useQuery<ChineseWord[]>({
     queryKey: ["words"],
-    queryFn: fetchAllWords,
-    // Keep previous data while refetching to avoid UI flashes
+    queryFn: allCards,
     keepPreviousData: true,
-    // stale time short so manual refresh is meaningful in dev; tune as needed
     staleTime: 1000 * 60,
   });
 
-  const handlePackOpened = (cards: ChineseWord[]) => {
-    cards.forEach((card) => addCardToLocalCollection(card));
-    setCollection(loadCollectionFromLocalStorage());
-  };
+  function usePackHandler() {
+    const queryClient = useQueryClient();
 
-  useEffect(() => {
-    // if local collection changed elsewhere, re-sync once when component mounts
-    setCollection(loadCollectionFromLocalStorage());
-  }, []);
+    const handlePackOpened = async (cards: ChineseWord[]) => {
+      if (!cards || cards.length === 0) return;
+      if (cards.length > 5) cards = cards.slice(0, 5);
 
+      try {
+        // 1️⃣ Unlock the new cards on the backend
+        await Promise.all(cards.map((c) => unlockCard(c.Id)));
+
+        // 2️⃣ Option A — let React Query automatically refetch:
+        await queryClient.invalidateQueries({ queryKey: ["userUnlockedCards"] });
+
+        toast({ title: "Success!", description: "Cards unlocked!" });
+      } catch (err) {
+        console.error("Error unlocking cards", err);
+        toast({ title: "Error", description: "Failed to unlock cards." });
+      }
+    };
+
+    return { handlePackOpened };
+  }
+  const { handlePackOpened } = usePackHandler();
   // dedupe by id
   const uniqueCards = collection.reduce<ChineseWord[]>((acc, item) => {
     if (!acc.find((c) => c.Id === item.Id)) acc.push(item);
@@ -50,8 +70,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navigation cardCount={uniqueCards.length} totalCards={allWords.length} />
+    <div className="min-h-screen bg-background">
+      <Navigation cardCount={uniqueCards.length} totalCards={allWords?.length} />
 
       {/* If no words, show message and a manual refresh button that re-queries Supabase */}
       {!isLoading && allWords.length === 0 && (
@@ -66,7 +86,7 @@ export default function Home() {
             <Button
               onClick={async () => {
                 try {
-                  await refetch();
+                  await refetchAllWords();
                   toast({
                     title: "Refetched",
                     description: "Tried to reload words from Supabase.",

@@ -5,6 +5,18 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontSize: {
+        // name: [ 'clamp(min, preferred, max)', { lineHeight: 'unitless' } ]
+        xs: ['clamp(0.75rem, 0.6vw, 0.8rem)', { lineHeight: '1.2' }],     // ~12px
+        base: ['clamp(0.875rem, 0.9vw, 1rem)', { lineHeight: '1.25' }],   // ~14-16px
+        lg: ['clamp(1rem, 1.1vw, 1.125rem)', { lineHeight: '1.22' }],     // ~16-18px
+        xl: ['clamp(1.125rem, 1.3vw, 1.25rem)', { lineHeight: '1.2' }],   // ~18-20px
+        '2xl': ['clamp(1.25rem, 1.6vw, 1.5rem)', { lineHeight: '1.18' }],
+      },
+      lineHeight: {
+        snug: '1.15',
+        relaxed: '1.35',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -12,7 +24,7 @@ export default {
       },
       colors: {
         // Backgrounds & text
-        background: "#FDFBF7",
+        background: "#F8F9F7",
         foreground: "#0F172A",
 
         // Surface cards & popovers
@@ -27,7 +39,7 @@ export default {
 
         // Primary (buttons, main accents)
         primary: {
-          DEFAULT: "#E05B4B",
+          DEFAULT: "#2E8B75",
           foreground: "#FFFFFF",
         },
 
@@ -45,13 +57,13 @@ export default {
 
         // Muted / subtle backgrounds
         muted: {
-          DEFAULT: "#F6F3F1",
+          DEFAULT: "#F8F9F7",
           foreground: "#6B6B6B",
         },
 
         // Accent (light tinted backgrounds used in charts/tiles)
         accent: {
-          DEFAULT: "#EBF6F4",
+          DEFAULT: "#D6D9D2",
           foreground: "#0F172A",
         },
 

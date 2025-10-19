@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Brain, Headphones, Link, Shuffle, Tag, User, Play, Lock } from "lucide-react";
-import type { ChineseWord } from "@shared/schema";
+import { ChineseWord } from "@/lib/card-utils";
 import RecognitionRecallExercise from "./recognition-recall-exercise";
 
 interface TrainingAreaProps {

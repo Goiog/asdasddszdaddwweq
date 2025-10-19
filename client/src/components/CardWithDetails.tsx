@@ -134,14 +134,14 @@ export default function CardWithDetails({
                                 renderDetails(current)
                             ) : (
                                 <div>
-                                <p className="text-sm text-gray-500 truncate">
+                                <p className="text-sm text-gray-500">
                                     {current?.Pinyin ?? "Untitled"}
                                 </p>
                                 <h3 className="flex text-lg font-semibold truncate font-Winchinese">
                                     {current?.Chinese ?? "Untitled"}
                                 {/* Speak Button */}
                                 <button
-                                    onClick={() => speakChinese(current?.Chinese)}
+                                    onClick={() => speakChinese(current?.Chinese ?? "")}
                                     className="flex items-center justify-center px-3 py-1 text-base hover:text-accent transition-colors"
                                     title="Speak"
                                 >
@@ -166,9 +166,9 @@ export default function CardWithDetails({
                                         const isPinyinVisible = pinyinVisibility[index] ?? true; // default: show pinyin
 
                                         return (
-                                            <div key={index} className="flex flex-col py-4 gap-0">
+                                            <div key={index} className="flex flex-col py-2 gap-0">
                                                 {/* Action Row */}
-                                                <div className="flex items-center gap-2 leading-relaxed ">
+                                                <div className="flex items-center gap-2 leading-snug">
                                                 
                                                 {/* Translate Button */}
                                                 <button
@@ -177,7 +177,7 @@ export default function CardWithDetails({
                                                     setTranslatedIndex(index);
                                                     setTranslatedText(result);
                                                     }}
-                                                    className="flex items-center justify-center px-0 py-1 text-base hover:text-accent transition-colors"
+                                                    className="flex items-center justify-center px-1 py-1 text-base hover:text-accent transition-colors"
                                                     data-testid={`translate-example-${index}`}
                                                     title="Translate"
                                                 >
@@ -187,7 +187,7 @@ export default function CardWithDetails({
                                                 {/* Speak Button */}
                                                 <button
                                                     onClick={() => speakChinese(example)}
-                                                    className="flex items-center justify-center px-0 py-1 text-base hover:text-accent transition-colors"
+                                                    className="flex items-center justify-center px-1 py-1 text-base hover:text-accent transition-colors"
                                                     data-testid={`speak-example-${index}`}
                                                     title="Speak"
                                                 >
@@ -197,7 +197,7 @@ export default function CardWithDetails({
                                                 {/* Pinyin Toggle Button */}
                                                 <button
                                                     onClick={() => togglePinyin(index)}
-                                                    className="flex items-center justify-center px-0 py-1 text-base hover:text-accent transition-colors"
+                                                    className="flex items-center justify-center px-1 py-1 text-base hover:text-accent transition-colors"
                                                     title={isPinyinVisible ? "Hide Pinyin" : "Show Pinyin"}
                                                     data-testid={`pinyin-toggle-${index}`}
                                                 >
@@ -212,9 +212,9 @@ export default function CardWithDetails({
                                                 <div className="flex flex-col">
                                                 {/* Example text */}
                                                 <div className="text-base text-gray-600">
-                                                    <pre className="whitespace-pre-wrap leading-relaxed font-Winchinese">
+                                                    <div className="text-base whitespace-pre-wrap leading-[1.2] font-Winchinese">
                                                     {isPinyinVisible ? example : renderPinyinWithCharacters(example)}
-                                                    </pre>
+                                                    </div>
                                                 </div>
 
                                                 {/* Translation text */}

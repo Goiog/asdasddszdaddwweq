@@ -1,14 +1,14 @@
+// src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 
+export const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL ?? '';
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ?? '';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL ?? '') as string;
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '') as string;
-
-
-if (!supabaseUrl || !supabaseAnonKey) {
-// Helpful runtime guard while developing
-console.warn('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in environment');
-}
-
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    // keep session persistence and auto refresh on (recommended for browser apps)
+    persistSession: true,
+    detectSessionInUrl: true,
+    autoRefreshToken: true,
+  },
+});
