@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressHSKPanel } from "@/components/ProgressHSKPanel"; // adjust path
 import { Grid, Hash, Palette, ArrowUpDown, LockOpen, Lock, Trophy } from "lucide-react";
 import {
-  ChineseWord, getUserUnlockedCards,allCards
+  ChineseWord, getUserUnlockedCards,allCards, unlockCardsBulk 
 } from "@/lib/card-utils";
 import { SearchBar } from "@/components/SearchBar";
 import PaginationBar from "@/components/PaginationBar";
@@ -37,6 +37,21 @@ export default function CollectionPage(): JSX.Element {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
+  /**
+ * DEV helper: mark every card as unlocked for testing.
+ * Adjust the localStorage key to match what getUserUnlockedCards reads.
+ */
+const unlockAllForTesting = async () => {
+  try {
+    const ids = allWords.map((w) => w.Id); // all available card IDs
+    await unlockCardsBulk(ids);
+    await refetchCollection(); // refresh the unlocked state
+    alert(`Unlocked ${ids.length} cards for testing (server-side).`);
+  } catch (err) {
+    console.error("unlockAllForTesting error:", err);
+    alert("Failed to unlock all cards — check console for details.");
+  }
+};
 
   // Reset page to 1 when filters or search changes so user doesn't land on an empty page
   useEffect(() => {
@@ -182,7 +197,7 @@ export default function CollectionPage(): JSX.Element {
         <section className="bg-card border border-border rounded-2xl p-4 mb-8 relative">
           
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-3 items-center">
             {/* Search */}
             <div className="col-span-1 md:col-span-2">
               <SearchBar
@@ -261,6 +276,17 @@ export default function CollectionPage(): JSX.Element {
                 Unlocked only
               </label> */}
             </div>
+            {process.env.NODE_ENV !== "production" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={unlockAllForTesting}
+                className="text-xs"
+              >
+                Unlock All (dev)
+              </Button>
+            )}
+
              {/* Trophy toggle button — stays on the right */}
 
             <ProgressToggleButton
@@ -271,6 +297,7 @@ export default function CollectionPage(): JSX.Element {
               allWords={allWords}
               stats={stats}
             />
+
           </div>
         </section>
 
