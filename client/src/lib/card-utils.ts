@@ -16,6 +16,14 @@ export type ChineseWord = {
   Category?: string |null;
 };
 
+export type UserWord = {
+  card_id: string;
+  user_id: string;
+  date_unlocked: string ;
+  trained: number | string | null;
+};
+
+
 function throwIfError(result: { error: any }) {
   if (result.error) throw result.error;
 }
@@ -74,34 +82,69 @@ export async function allCards(): Promise<ChineseWord[]> {
   throwIfError({ error });
   return (data ?? []) as ChineseWord[];
 }
-export async function getUserUnlockedCardIds(): Promise<string[]> {
+
+export async function allCardsId(): Promise<ChineseWord[]> {
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select("Id")
+    .order("Id", { ascending: true }) // explicit ordering
+    .range(0, 499);                    // explicit range (0-based inclusive)
+
+  throwIfError({ error });
+  return (data ?? []) as ChineseWord[];
+}
+
+
+export async function getUserUnlockedCardIds(): Promise<{ card_id: string; trained: number }[]> {
+  // Get the current authenticated user
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+
+  const userId = userData?.user?.id;
+  if (!userId) return [];
+
   const { data, error } = await supabase
     .from('unlocked_cards')
-    .select('card_id')
-    .order('date_unlocked', { ascending: false });
+    .select('card_id, trained')
+    .eq('user_id', userId); // ✅ Only fetch for logged-in user
 
   throwIfError({ error });
 
-  if (!Array.isArray(data)) return [];
-
-  // Each row is { card_id: '...' }
-  return data.map((r: any) => String(r.card_id));
+  return data ?? [];
 }
 
-export async function getUserUnlockedCards(): Promise<ChineseWord[]> {
-  const cardIds = await getUserUnlockedCardIds();
-  if (cardIds.length === 0) return [];
+export async function getUserUnlockedCards(): Promise<(ChineseWord & { trained: number })[]> {
+  // Step 1: Get unlocked card IDs + trained status
+  const unlocked = await getUserUnlockedCardIds(); // [{ card_id, trained }]
 
-  // Query ChineseDatabase for these ids. Use .in() with array of strings.
+  if (unlocked.length === 0) return [];
+
+  const cardIds = unlocked.map(u => u.card_id);
+
+  // Step 2: Fetch the ChineseWord entries for those IDs
   const { data, error } = await supabase
     .from(TABLE_NAME)
     .select('*')
-    .in('Id', cardIds);
+    .in('Id', cardIds.map(Id => String(Id))); // ensure IDs are strings
 
   throwIfError({ error });
 
-  return (data ?? []) as ChineseWord[];
+  const words = (data ?? []) as ChineseWord[];
+
+  // Step 3: Merge trained info back into each card
+  const trainedMap = new Map(
+    unlocked.map(u => [String(u.card_id), u.trained]) // ensure keys are strings
+  );
+
+  const merged = words.map(w => ({
+    ...w,
+    trained: trainedMap.get(String(w.Id)) ?? 0, // default to 0 if not found
+  }));
+
+  return merged;
 }
+
+
 
 export async function ensureUnlocked(cardId: number | string): Promise<{ alreadyUnlocked: boolean }> {
   const already = await hasUnlocked(cardId);
@@ -127,5 +170,5 @@ export function getImageUrl(
   size: number = 273 // default to small
 ): string {
   const base = SUPABASE_URL || "";
-  return `${base}/storage/v1/object/public/ChineseRequest/${card.Id}_${size}.webp`;
+  return `${base}/storage/v1/object/public/ChineseRequest/Cards/${card.Id}_${size}.webp`;
 }

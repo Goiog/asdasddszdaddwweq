@@ -4,7 +4,6 @@ import type { ChineseWord } from "@/lib/card-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card as UICard } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { pinyinNumericToAccents } from "@/components/pinyinUtils";
 import Card from "@/components/card";
 import { CheckCircle, XCircle, BookOpen, Target, Users } from "lucide-react";

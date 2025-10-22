@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { ProgressHSKPanel } from "@/components/ProgressHSKPanel"; // adjust path
 import { Grid, Hash, Palette, ArrowUpDown, LockOpen, Lock, Trophy } from "lucide-react";
 import {
-  ChineseWord, getUserUnlockedCards,allCards, unlockCardsBulk 
+  ChineseWord, getUserUnlockedCards, unlockCardsBulk, allCardsId
 } from "@/lib/card-utils";
 import { SearchBar } from "@/components/SearchBar";
 import PaginationBar from "@/components/PaginationBar";
 import { ProgressRing , ProgressToggleButton} from "@/components/ProgressRingButton";
+// e.g. in FlipCard.tsx or parent file
+import FlipCard from "@/components/FlipCard";
+
 
 
 export default function CollectionPage(): JSX.Element {
@@ -58,36 +61,57 @@ const unlockAllForTesting = async () => {
     setPage(1);
   }, [debouncedQuery, hskFilter, themeFilter, sortBy, showOnlyUnlocked, searchMode]);
 
-  // Fetch all words from remote source and normalize
-  const {
-    data: allWords = [],
-    isLoading: isAllWordsLoading,
-  } = useQuery<ChineseWord[]>({
-    queryKey: ["words"],
-    queryFn: allCards,
-    staleTime: 1000 * 60 * 5,
-  });
 
-
-  // Deduplicate local collection
   const {
     data: uniqueCards = [],
-    isLoading: isCollectionLoading,
+    isLoading: isAllWordsLoading,
     refetch: refetchCollection,
-  } = useQuery<ChineseWord[]>({
+  } = useQuery({
     queryKey: ["userUnlockedCards"],
     queryFn: getUserUnlockedCards,
     staleTime: 1000 * 60 * 5, // cache 5 minutes
   });
 
+  const {
+    data: allWords = [],
+    isLoading: isallCardsIdLoading,
+    refetch: refetcallCardsId,
+  } = useQuery({
+    queryKey: ["allCardsId"],
+    queryFn: allCardsId,
+    staleTime: 1000 * 60 * 5, // cache 5 minutes
+  });
+
+  // const uniqueCards = allWords;
+
   // Combine DB words with owned flag
   const combinedCards = useMemo(() => {
-    const ownedIds = new Set(uniqueCards.map((c) => String(c.Id)));
-    return allWords.map((word) => ({
-      word,
-      unlocked: ownedIds.has(String(word.Id)),
-    }));
+    // Map for fast lookup of owned cards by ID
+    const uniqueCardMap = new Map(uniqueCards.map((card) => [String(card.Id), card]));
+
+    return allWords.map((word) => {
+      const wordId = String(word.Id);
+      const fullInfo = uniqueCardMap.get(wordId);
+
+      // If owned, use full info; else create object with Id + nulls
+      const wordObj = fullInfo
+        ? fullInfo
+        : {
+            Id: wordId,
+            Name: null,
+            Category: null,
+            // add other properties here as needed with null
+          };
+
+      return {
+        id: wordId,
+        word: wordObj,
+        unlocked: fullInfo ? true : false,
+      };
+    });
   }, [allWords, uniqueCards]);
+
+
 
 
   // Stats
@@ -110,11 +134,11 @@ const unlockAllForTesting = async () => {
   // Collect themes
   const allThemes = useMemo(() => {
     const set = new Set<string>();
-    allWords.forEach((w) => {
+    uniqueCards.forEach((w) => {
       if (w.Theme) set.add(w.Theme);
     });
     return Array.from(set).sort();
-  }, [allWords]);
+  }, [uniqueCards]);
 
   // Filter + sort logic
   const filteredCards = useMemo(() => {
@@ -294,7 +318,7 @@ const unlockAllForTesting = async () => {
               onToggle={() => setIsProgressOpen((s) => !s)}
               progressPercentage={progressPercentage}
               uniqueCards={uniqueCards}
-              allWords={allWords}
+              allWords={uniqueCards}
               stats={stats}
             />
 
@@ -320,7 +344,7 @@ const unlockAllForTesting = async () => {
             <ProgressHSKPanel
               progressPercentage={progressPercentage}
               uniqueCards={uniqueCards}
-              allWords={allWords}
+              allWords={uniqueCards}
               stats={stats}
             />
           </div>
@@ -362,7 +386,7 @@ const unlockAllForTesting = async () => {
             <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 justify-items-center" : "space-y-4"}>
               {visibleCards.map(({ word, unlocked }) => (
                 <div key={word.Id} className="relative">
-                  <Card card={word} size={viewMode === "grid" ? "l" : "m"} onClick={() => handleCardClick(word, unlocked)} className={`${viewMode === "list" ? "flex-row w-full" : ""} ${!unlocked ? "filter: blur" : ""}`} />
+                  <Card card={word} size={13.5} onClick={() => handleCardClick(word, unlocked)} className={`${viewMode === "list" ? "flex-row w-full" : ""} ${!unlocked ? "filter: blur" : ""}`} />
 
                   {!unlocked && (
                     <div className="absolute inset-0 bg-black/80 rounded-xl flex items-center justify-center">
@@ -378,12 +402,12 @@ const unlockAllForTesting = async () => {
       </main>
 
       {/* Modal */}
-      <CardModal
+      <FlipCard
         card={selectedCard}
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setSelectedCard(null); }}
         onCardChange={(newCard) => setSelectedCard(newCard ?? null)}
-        allCards={allWords}
+        allCards={uniqueCards}
       />
     </div>
   );

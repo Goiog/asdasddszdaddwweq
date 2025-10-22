@@ -4,10 +4,9 @@ import Card from "./card";
 import type { ChineseWord } from "@/lib/card-utils";
 import {speakChinese, renderPinyinWithCharacters} from "./new-card-modal";
 import { Languages, Volume2, Eye, EyeOff } from "lucide-react";
-type CardType = any;
 
 type Props = {
-    cards: ChineseWord[];  // ✅ plural, array
+    cards: ChineseWord & { trained: number };  // ✅ plural, array
     index: number;
     onCardClick: (c: ChineseWord) => void;
     autoReveal?: boolean;
@@ -104,7 +103,7 @@ export default function CardWithDetails({
                         <Card
                         card={current}
                         showAnimation
-                        size="xl"
+                        size={20}
                         onClick={() => onCardClick(current)}
                         />
                     </div>

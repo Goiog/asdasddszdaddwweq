@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/navigation';
 import { signInWithProvider } from '@/lib/auth';
-
+import SignUpWithGoogle from '@/components/SignUpWithGoogle';
 export default function LoginPage(): JSX.Element {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -111,14 +111,9 @@ export default function LoginPage(): JSX.Element {
           </form>
 
           <div className="my-4 text-center">or</div>
-
-          <div className="space-y-2">
-            <button
-            onClick={() => signInWithProvider('google')}
-            className="w-full py-2 rounded border"
-            >
-            Continue with Google
-            </button>
+          
+          <div className="w-full space-y-2">
+            <SignUpWithGoogle redirectTo={`${window.location.origin}/Account`} />
 
           </div>
 

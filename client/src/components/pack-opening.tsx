@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChineseWord} from "@/lib/card-utils";
 import { allCards } from "@/lib/card-utils";
@@ -11,7 +10,7 @@ import RecognitionRecallExercise from "./recognition-recall-exercise";
 import CardWithDetails from "./CardWithDetails"; // adjust path if needed
 
 interface PackOpeningProps {
-  onPackOpened: (cards: (ChineseWord & { unlocked?: boolean; isNew?: boolean })[]) => void;
+  onPackOpened: (cards: (ChineseWord & {  trained?: number; unlocked?: boolean; isNew?: boolean })[]) => void;
   uniqueCards?: any[];
   userId?: string;
 }
@@ -303,7 +302,7 @@ function PackOpeningAnimation({ progress, cards, showCards, onContinue, onCardCl
                 }
               }}
             >
-              <Card card={card} size="m" />
+              <Card card={card} size={12} />
             </motion.div>
           ))}
         </div>

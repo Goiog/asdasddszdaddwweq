@@ -1,41 +1,47 @@
 import { 
   getImageUrl,
-  type ChineseWord
+  type ChineseWord, type UserWord
 } from "@/lib/card-utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { pinyinNumericToAccents } from "./pinyinUtils";
-
-
+import Battery from "./Battery";
 interface CardVisualProps {
-  card: ChineseWord;
-  size?: "xs" | "s" | "m" | "l" | "xl";
-
+  card: ChineseWord & { trained: number };
+  size?: number;
 }
+import { SUPABASE_URL } from "@/lib/supabase";
+import {speakChinese, renderPinyinWithCharacters} from "./new-card-modal";
+import { Languages, Volume2, Eye, EyeOff } from "lucide-react";
 
-
-export function CardVisual({ card, size = "m" }: CardVisualProps) {
+export function CardVisual({ card, size=13 }: CardVisualProps) {
   const [imageError, setImageError] = useState(false);
 
-  const sizeStyles = {
-    xs: { width: "w-[8rem]", text: "text-[0.3em]", chinese: "text-[0.9em]", id: "text-[0.32em]",proportion: 0.47, imageSize: 358 },
-    s:  { width: "w-[10rem]", text: "text-[0.38em]", chinese: "text-[1.1em]", id: "text-[0.4em]",proportion: 0.59, imageSize: 256 },
-    m:  { width: "w-[12rem]", text: "text-[0.45em]", chinese: "text-[1.3em]", id: "text-[0.48em]",proportion: 0.71, imageSize: 512 },
-    l:  { width: "w-[13.5rem]", text: "text-[0.51em]", chinese: "text-[1.49em]", id: "text-[0.54em]",proportion: 0.8, imageSize: 512 },
-    xl: { width: "w-[17rem]", text: "text-[0.67em]", chinese: "text-[1.97em]", id: "text-[0.72em]",proportion: 1, imageSize: 512 },
-  } as const;
+  // safe value to display
+   const rootStyle: React.CSSProperties & { [key: `--${string}`]: string } = {
+    ["--card-size" as any]: `${size}rem`,
+    ["--text-size" as any]: `${size * 0.0375}rem`,
+    ["--chinese-size" as any]: `${size * 0.108}rem`,
+    ["--id-size" as any]: `${size * 0.04}rem`,
+    ["--translation-size" as any]: `${size * 0.035}rem`,
+  };
 
-  const style = sizeStyles[size] ?? sizeStyles.m; // fallback to 'm'
-  const imageUrl = getImageUrl(card, style.imageSize);
+  const imageUrl = getImageUrl(card, 512);
+
   function formatCategory(category: string): string {
-    if (!category) return '';
-    const formatted = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
-    return formatted.length > 6 ? formatted.slice(0, 5) + '.' : formatted;
+    if (!category) return "";
+    const formatted =
+      category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+    return formatted.length > 6 ? formatted.slice(0, 5) + "." : formatted;
   }
-  // 👇 Dynamic layout image URL fetched from render server
-  //const layoutUrl = getLayoutImageUrl(card.HSK ?? 1);
 
   return (
-        <div className={`aspect-[512/720] relative ${style.width} overflow-hidden rounded-lg`}>
+      <div
+        className="aspect-[512/720] relative w-[var(--card-size)] overflow-hidden"
+        style={{ 
+          ...rootStyle,                     // spread your other CSS variables
+          borderRadius: `${size * 0.05*0.8}rem` // add custom border radius
+        }}
+      >
       <div className="absolute inset-0">
         {!imageError ? (
           <img
@@ -48,46 +54,55 @@ export function CardVisual({ card, size = "m" }: CardVisualProps) {
           <div className="w-full h-full bg-gradient-to-br" />
         )}
       </div>
-      
-      <div className={`absolute inset-0 flex flex-col h-full text-center font-sans ${style.height}`}>
-        {/* HSK top-left */}
-        <div className={`${style.text} absolute right-2 px-2`} style={{ top: `${style.proportion * 1}rem` }}>
+
+      <div className="absolute inset-0 flex flex-col h-full text-center font-sans">
+        {/* HSK top-right */}
+        <div
+          className="absolute right-2 px-2"
+          style={{ top: `${size * 0.05 * 1.4}rem`,right: `${size * 0.05 * 1.2}rem`, fontSize: `var(--text-size)` }}
+        >
           HSK {card.HSK}
         </div>
+
         <div
-          className="absolute flex flex-col gap-1"
+          className="absolute flex flex-col"
           style={{
-            top: `${style.proportion * 0.55}rem`,
-            left: `${style.proportion * 0.6}rem`
+            gap: `${size * 0.05 * 0.4}rem`,
+            top: `${size * 0.05 * 0.7}rem`,
+            left: `${size * 0.05 * 0.9}rem`,
           }}
         >
-          {card.Category.split('/').map((cat: string, index: number) => (
+          {card.Category?.split("/").map((cat: string, index: number) => (
             <div
               key={index}
-              className={`badge ${cat.trim().toLowerCase()} `}
+              className={`badge ${cat.trim().toLowerCase()}`}
               style={{
-                padding: `${1 * style.proportion}px ${5 * style.proportion}px`,
-                borderRadius: `${5 * style.proportion}px`,
-                fontSize: `${0.6 * style.proportion}rem`,
-                textTransform: 'none',
-                backgroundColor: 'white',
-                borderWidth: `${1 * style.proportion}px`, // just width
-                borderStyle: 'solid',                     // just style
-                color: '#333'
+                fontSize: `${0.7* size * 0.05}rem`,
+                textTransform: "none",
+                color: "#333",
               }}
             >
               {formatCategory(cat)}
             </div>
           ))}
         </div>
-        <div className={`${style.text} text-black py-2`}>
-          {pinyinNumericToAccents(card.Pinyin)}
+
+        {/* Pinyin: use tailwind arbitrary text utility */}
+        <div className="flex flex-col items-center mt-[0.1rem] relative"
+          style={{
+              fontSize: "var(--text-size)",
+              top: `${size * 0.05 * 0.8}rem`,
+            }}>
+          {card.Pinyin}
         </div>
 
-        <div className="flex flex-col items-center mt-0.1 font-chinese">
-          <div className="relative inline-block whitespace-nowrap leading-[0.5]">
+        {/* Chinese */}
+        <div className="flex flex-col items-center mt-[0.1rem] relative font-chinese">
+          <div className="relative inline-block whitespace-nowrap">
             <div
-              className={`${style.chinese} relative z-10 font-extrabold `}
+              className="relative font-extrabold"
+              style={{ fontSize: "var(--chinese-size)" ,
+              top: `${size * 0.05 * 0.45}rem`}}
             >
               {card.Chinese}
             </div>
@@ -96,34 +111,52 @@ export function CardVisual({ card, size = "m" }: CardVisualProps) {
 
         <div className="mt-auto relative">
           <span
-            className={`${style.id} text-black absolute left-1/2`}
+            className="absolute left-1/2 text-gray-700"
             style={{
-              bottom: `${style.proportion * 0.7}rem`,
-              transform: 'translateX(-50%)'
+              bottom: `${size * 0.05 * 0.85}rem`,
+              transform: `translateX(-50%)`,
+              fontSize: "var(--id-size)"
             }}
           >
             {card.Id}
           </span>
         </div>
-        {/* Theme bottom-right */}
-        <div className={`${style.text} absolute left-2 px-2 text-gray-700`}
-        style={{
-              bottom: `${style.proportion}rem`
-            }}>
-          
-          {card.Translation}
+
+        {/* Translation bottom-left */}
+        <div
+          className="absolute text-gray-700 font-sans"
+          style={{
+            bottom: `${size * 0.06}rem`,
+            left: `${size * 0.05}rem`,
+            fontSize: "var(--translation-size)"
+          }}
+        >
+          <i> {card.Translation} </i>
+        </div>
+
+        {/* Battery bottom-right */}
+        <div
+          className="absolute text-gray-700"
+          style={{
+            bottom: `${size * 0.0475 * 1}rem`,
+            right: `${size * 0.05 * 1}rem`
+          }}
+        >
+          <Battery level={card.trained} proportion={size * 0.05 * 1.4} />
         </div>
       </div>
     </div>
   );
 }
 
+
 interface CardProps {
-  card: ChineseWord & { isNew?: boolean; unlocked?: boolean };
+  card: ChineseWord & { trained: number };
+  index:number;
   onClick?: () => void;
   showAnimation?: boolean;
   className?: string;
-  size?: "xs" | "s" | "m" | "l" | "xl";// 👈 Add this line
+  size?: number;
 };
 
 // Component
@@ -132,11 +165,11 @@ export default function Card({
   onClick,
   showAnimation = false,
   className = "",
-  size = "m", // 👈 Default value if not provided
+  size = 12, // 👈 Default value if not provided
 }: CardProps) {
   const cardClasses = `
-    relative card-3d bg-card border border-border rounded-xl p-0 shadow-lg hover:shadow-xl 
-    transition-all duration-300 cursor-pointer  ${className}
+    relative card-3d bg-transparent rounded-[1rem] p-0 shadow-lg hover:shadow-xl 
+    transition-all duration-300 cursor-pointer ${className}
     ${showAnimation ? "animate-card-reveal" : ""}
   `.trim();
 
@@ -162,8 +195,260 @@ export default function Card({
         </span>
       )}
 
-      {/* 👇 Use the size prop here */}
       <CardVisual card={card} size={size} />
+    </div>
+  );
+}
+
+
+export function CardBackVisual({ card,index, size=13 }: CardVisualProps) {
+  const [expanded, setExpanded] = useState(false);
+          const [translatedIndex, setTranslatedIndex] = useState<number | null>(null);
+          const [translatedText, setTranslatedText] = useState("");
+          const [pinyinVisibility, setPinyinVisibility] = useState<{ [key: number]: boolean }>({});
+          const togglePinyin = (index: number) => {
+          setPinyinVisibility((prev) => ({
+              ...prev,
+              [index]: !prev[index], // toggle only this example
+          }));
+      };
+  const [imageError, setImageError] = useState(false);
+  useEffect(() => {
+          // Reset translation and pinyin visibility when card changes
+          setTranslatedIndex(null);
+          setTranslatedText("");
+          setPinyinVisibility({});
+      }, [index]);
+  // safe value to display
+   const rootStyle: React.CSSProperties & { [key: `--${string}`]: string } = {
+    ["--card-size" as any]: `${size}rem`,
+    ["--text-size" as any]: `${size * 0.0375}rem`,
+    ["--chinese-size" as any]: `${size * 0.108}rem`,
+    ["--id-size" as any]: `${size * 0.04}rem`,
+    ["--translation-size" as any]: `${size * 0.035}rem`,
+  };
+
+  const imageUrl = getImageUrl(card, 512);
+  const translateChineseToEnglish = async (text: string) => {
+        try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        return result[0][0][0];
+        } catch (error) {
+        return "Translation failed";
+        }
+    };
+
+  function formatCategory(category: string): string {
+    if (!category) return "";
+    const formatted =
+      category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+    return formatted.length > 6 ? formatted.slice(0, 5) + "." : formatted;
+  }
+  const examples = typeof card.Examples === "string" && card.Examples.trim().length > 0
+        ? card.Examples.split(/\d+\.\s*/).filter(Boolean)
+        : [];
+  return (
+      <div
+        className="aspect-[512/720] relative w-[var(--card-size)] overflow-hidden"
+        style={{ 
+          ...rootStyle,                     // spread your other CSS variables
+          borderRadius: `${size * 0.05*0.8}rem` // add custom border radius
+        }}
+      >
+      <div className="absolute inset-0">
+        {!imageError ? (
+          <img
+            src={`${SUPABASE_URL}/storage/v1/object/public/ChineseRequest/Card_Layout_Back.webp`}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br" />
+        )}
+      </div>
+
+      <div className="absolute inset-0 flex flex-col h-full text-center font-sans text-gray-100">
+        {/* HSK top-right */}
+        <div
+          className="absolute right-2 px-2"
+          style={{ top: `${size * 0.05 * 1.4}rem`,right: `${size * 0.05 * 1.2}rem`, fontSize: `var(--text-size)` }}
+        >
+          HSK {card.HSK}
+        </div>
+
+        <div
+          className="absolute flex flex-col"
+          style={{
+            gap: `${size * 0.05 * 0.4}rem`,
+            top: `${size * 0.05 * 0.7}rem`,
+            left: `${size * 0.05 * 0.9}rem`,
+          }}
+        >
+          {card.Category?.split("/").map((cat: string, index: number) => (
+            <div
+              key={index}
+              className={`badge ${cat.trim().toLowerCase()}`}
+              style={{
+                fontSize: `${0.7* size * 0.05}rem`,
+                textTransform: "none",
+                color: "#333",
+              }}
+            >
+              <div  className="text-gray-100">
+              {formatCategory(cat)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pinyin: use tailwind arbitrary text utility */}
+        <div className="flex flex-col items-center mt-[0.1rem] relative text-gray-100"
+          style={{
+              fontSize: "var(--text-size)",
+              top: `${size * 0.05 * 0.8}rem`,
+            }}>
+          {card.Pinyin}
+        </div>
+
+        {/* Chinese */}
+        <div className="flex flex-col items-center mt-[0.1rem] relative font-chinese text-gray-100">
+          <div className="relative inline-block whitespace-nowrap">
+            <div
+              className="relative font-extrabold"
+              style={{ fontSize: "var(--chinese-size)" ,
+              top: `${size * 0.05 * 0.45}rem`}}
+            >
+              {card.Chinese}
+            </div>
+          </div>
+        </div>
+
+        {/* Chinese */}
+        <div className="flex flex-col items-center mt-[0.1rem] relative text-gray-100">
+          <div className="relative inline-block w-[90%]">
+            <div
+              className="relative text-center whitespace-normal break-words overflow-visible text-justify"
+              style={{ fontSize: 14, top: `${size * 0.05 * 1.5}rem` }}
+            >
+              {card.Meaning}
+            </div>
+          </div>
+        </div>
+
+        {examples.length > 0 &&
+          examples.map((rawExample, index) => {
+              const example = (rawExample ?? "").trim();
+              const isPinyinVisible = pinyinVisibility[index] ?? true; // default: show pinyin
+
+              return (
+                  <div key={index} className="relative"
+                      style={{ top: `${size * 0.05 * 2}rem`,
+                              left: `${size * 0.05 * 1.1}rem`}}>
+                      {/* Action Row */}
+                      <div className="flex items-center gap-2 leading-snug">
+                      
+                      {/* Translate Button */}
+                      <button
+                          onClick={async () => {
+                          const result = await translateChineseToEnglish(example);
+                          setTranslatedIndex(index);
+                          setTranslatedText(result);
+                          }}
+                          className="flex items-center justify-center px-1 py-4 text-base hover:text-accent transition-colors"
+                          data-testid={`translate-example-${index}`}
+                          title="Translate"
+                      >
+                          <Languages className="w-4 h-4" />
+                      </button>
+
+                      {/* Speak Button */}
+                      <button
+                          onClick={() => speakChinese(example)}
+                          className="flex items-center justify-center px-1 py-1 text-base hover:text-accent transition-colors"
+                          data-testid={`speak-example-${index}`}
+                          title="Speak"
+                      >
+                          <Volume2 className="w-4 h-4" />
+                      </button>
+
+                      {/* Pinyin Toggle Button */}
+                      <button
+                          onClick={() => togglePinyin(index)}
+                          className="flex items-center justify-center px-1 py-1 text-base hover:text-accent transition-colors"
+                          title={isPinyinVisible ? "Hide Pinyin" : "Show Pinyin"}
+                          data-testid={`pinyin-toggle-${index}`}
+                      >
+                          {isPinyinVisible ? (
+                          <Eye className="w-4 h-4" />
+                          ) : (
+                          <EyeOff className="w-4 h-4" />
+                          )}
+                      </button>
+
+                      {/* Example + Translation container */}
+                      <div className="flex flex-col">
+                      {/* Example text */}
+                      <div className="text-base text-gray-600">
+                          <div className="text-base whitespace-pre-wrap leading-[1.2] font-Winchinese text-gray-100">
+                          {isPinyinVisible ? example : renderPinyinWithCharacters(example)}
+                          </div>
+                      </div>
+
+                      {/* Translation text */}
+                      {translatedIndex === index && translatedText && (
+                          <div className="pl-3 border-l-2 border-accent text-sm text-gray-100 italic">
+                          {translatedText}
+                          </div>
+                      )}
+                      </div>
+                  </div>
+                  </div>
+                  );
+
+          })}
+      </div>
+        {/* Translation bottom-left */}
+        <div className="mt-auto relative">
+          <span
+            className="absolute left-1/2 text-gray-100"
+            style={{
+              bottom: `${size * 0.05 * 1.1}rem`,
+              transform: `translateX(-50%)`,
+              fontSize: "var(--id-size)"
+            }}
+        >
+          <i> {card.Translation} </i>
+            </span>
+        </div>
+      </div>
+  );
+}
+
+
+export function CardBack({
+  card,
+  onClick,
+  showAnimation = false,
+  className = "",
+  size = 12, // 👈 Default value if not provided
+}: CardProps) {
+  const cardClasses = `
+    relative card-3d bg-transparent rounded-[1rem] p-0 shadow-lg hover:shadow-xl 
+    transition-all duration-300 cursor-pointer ${className}
+    ${showAnimation ? "animate-card-reveal" : ""}
+  `.trim();
+
+
+  return (
+    <div
+      className={cardClasses}
+      onClick={onClick}
+      data-testid={`card-${card.Id}`}
+    >
+      <CardBackVisual card={card} size={size} />
     </div>
   );
 }
